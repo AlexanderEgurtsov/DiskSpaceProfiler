@@ -63,12 +63,13 @@ namespace DiscSpaceProfiler.ViewModels
             try
             {
                 fileInfo = new FileInfo(path);
+                return new Tuple<string, long>(fileInfo.FullName, fileInfo.Length);
             }
             catch
             {
                 return null;
             }
-             return new Tuple<string, long>(fileInfo.FullName, fileInfo.Length);
+             
         }
         public IEnumerable<Tuple<string, long>> GetFiles(string path)
         {
@@ -108,10 +109,6 @@ namespace DiscSpaceProfiler.ViewModels
             {
                 return Enumerable.Empty<Tuple<string, long>>();
             }
-        }
-        public object GetFileInfo()
-        {
-            throw new NotImplementedException();
         }
     }
 }

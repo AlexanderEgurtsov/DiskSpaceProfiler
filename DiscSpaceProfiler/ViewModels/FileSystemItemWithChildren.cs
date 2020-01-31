@@ -133,6 +133,19 @@ namespace DiscSpaceProfiler.ViewModels
             children.SetDisplayName(name);
             return children;
         }
+        public void AddFiles(IEnumerable<FileItem> fileItems)
+        {
+            long sizeDelta = 0;
+            foreach (var fileItem in fileItems)
+            {
+                sizeDelta += fileItem.Size;
+                fileItem.SetParent(this);
+                AddFile(fileItem);
+            }
+            UpdateSize(sizeDelta);
+            UpdateIsValid(true);
+            OnPropertyChanged(nameof(Children));
+        }
 
     }
 }

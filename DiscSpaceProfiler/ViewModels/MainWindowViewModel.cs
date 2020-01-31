@@ -48,7 +48,7 @@ namespace DiscSpaceProfiler.ViewModels
 
         public IEnumerable<FileSystemItem> RootNodes => rootNodes;
 
-        public static string GetName(string path) 
+        public static string GetName(string path)
         {
             return string.Intern(Path.GetFileName(path));
         }
@@ -63,7 +63,7 @@ namespace DiscSpaceProfiler.ViewModels
             scanMonitorTimer = new Timer(100);
             scanMonitorTimer.Elapsed += ehScanMonitorTimerElapsed;
             scanMonitorTimer.Start();
-            
+
         }
 
         void AddFolderToScan(FileSystemItemWithChildren item)
@@ -71,14 +71,18 @@ namespace DiscSpaceProfiler.ViewModels
             item.IsProcessing = true;
             foldersToScan.Enqueue(item);
         }
-        
+        IEnumerable<FileItem> GetFileItems(IEnumerable<Tuple<string, long>> files)
+        {
+            foreach (Tuple<string, long> fileInfo in files)
+                yield return new FileItem(fileInfo.Item1, GetName(fileInfo.Item1), fileInfo.Item2);
+        }
         void CollectNestedItems(FileSystemItemWithChildren parentItem)
         {
             if (parentItem == null || parentItem.IsFile)
                 return;
             (parentItem as FileSystemItemWithChildren).IsProcessing = true;
             var parentPath = parentItem.Path;
-            if (string.IsNullOrEmpty(parentPath)/* || !fileSystemDataProvider.DirectoryExists(parentPath)*/)
+            if (string.IsNullOrEmpty(parentPath))
                 return;
             var directories = fileSystemDataProvider.GetDirectories(parentPath);
             var files = fileSystemDataProvider.GetFiles(parentPath);
@@ -89,11 +93,7 @@ namespace DiscSpaceProfiler.ViewModels
                 UpdateSearchInfo(directory, folderItem);
                 AddFolderToScan(folderItem);
             }
-            foreach (var fileInfo in files)
-            {
-                FileItem fileItem = new FileItem(fileInfo.Item1, GetName(fileInfo.Item1), fileInfo.Item2);
-                parentItem.AddChildren(fileItem);
-            }
+            parentItem.AddFiles(GetFileItems(files));
             parentItem.IsProcessing = false;
             if (!parentItem.HasChildren)
             {

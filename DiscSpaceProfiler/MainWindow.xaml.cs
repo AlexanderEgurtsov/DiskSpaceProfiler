@@ -28,7 +28,7 @@ namespace DiscSpaceProfiler
             InitializeComponent();
             DataContext = viewModel;
             viewModel.ScanCompleted += ehScanCompleted;
-            viewModel.Run(@"C:\Films");
+            viewModel.Run(@"C:\Addins");
         }
         void ehScanCompleted(object sender, EventArgs e)
         {

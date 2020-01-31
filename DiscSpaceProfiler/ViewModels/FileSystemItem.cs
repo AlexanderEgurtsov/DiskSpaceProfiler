@@ -100,12 +100,12 @@ namespace DiscSpaceProfiler.ViewModels
         protected void UpdateSize(long size)
         {
             Size += size;
-            this.OnPropertyChanged(nameof(Size));
+            //this.OnPropertyChanged(nameof(Size));
             FileSystemItemWithChildren parentItem = Parent as FileSystemItemWithChildren;
             while (parentItem != null)
             {
                 parentItem.Size += size;
-                parentItem.OnPropertyChanged(nameof(Size));
+                //parentItem.OnPropertyChanged(nameof(Size));
                 parentItem = parentItem.Parent as FileSystemItemWithChildren;
             }
         }

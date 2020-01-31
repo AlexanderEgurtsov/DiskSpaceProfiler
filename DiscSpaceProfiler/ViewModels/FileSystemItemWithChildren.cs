@@ -13,7 +13,7 @@ namespace DiscSpaceProfiler.ViewModels
         {
 
         }
-
+        public bool IsProcessing { get; set; }
         public override IEnumerable<FileSystemItem> Children
         {
             get
@@ -66,9 +66,11 @@ namespace DiscSpaceProfiler.ViewModels
             if (oldIsValid != IsValid)
                 (Parent as FileSystemItemWithChildren)?.UpdateIsValid(this.IsValid);
         }
+        object addLock = new object();
         public override void AddChildren(FileSystemItem childItem)
         {
             childItem.SetParent(this);
+            bool isFirstItem = files == null && folders == null;
             if (childItem is FileItem fileItem)
             {
                 AddFile(fileItem);
@@ -78,6 +80,8 @@ namespace DiscSpaceProfiler.ViewModels
             {
                 AddFolder(folderItem);
             }
+            if (isFirstItem)
+                OnPropertyChanged(nameof(HasChildren));
             UpdateSize(childItem.Size);
             UpdateIsValid(childItem.IsValid);
             OnPropertyChanged(nameof(Children));
@@ -110,6 +114,8 @@ namespace DiscSpaceProfiler.ViewModels
                 files.Remove(fileItem);
             else if (children is FolderItem folderItem)
                 folders.Remove(folderItem);
+            if (!children.IsValid && IsValid)
+                UpdateIsValid(true);
             UpdateSize(-children.Size);
             OnPropertyChanged(nameof(Children));
             return children;

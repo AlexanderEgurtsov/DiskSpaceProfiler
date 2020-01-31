@@ -102,6 +102,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         {
             Assert.IsTrue(fileSystemItem is FileItem);
             Assert.AreEqual(filePath, fileSystemItem.Path);
+            Assert.AreEqual(Path.GetFileName(filePath), fileSystemItem.DisplayName);
             Assert.AreEqual(1, fileSystemItem.Size);
             
         }
@@ -109,6 +110,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         {
             Assert.IsTrue(rootNode is FolderItem);
             Assert.AreEqual(rootPath, rootNode.Path);
+            Assert.AreEqual(Path.GetFileName(rootPath), rootNode.DisplayName);
             Assert.IsTrue(rootNode.IsValid);
             var directories = Directory.GetDirectories(rootPath);
             var files = Directory.GetFiles(rootPath);
@@ -116,11 +118,17 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             Assert.AreEqual(childrens.Count, files.Length + directories.Length);
             for (int i = 0; i < files.Length; i++)
             {
-                CheckFiles(childrens[i + directories.Length], files[i]);
+                var file = files[i];
+                var childFile = rootNode.FindChildren(file, Path.GetFileName(file));
+                Assert.IsNotNull(childFile);
+                CheckFiles(childFile, file);
             }
             for (int i = 0; i < directories.Length; i++)
             {
-                CheckFolders(childrens[i], directories[i]);
+                var folder = directories[i];
+                var childFolder = rootNode.FindChildren(folder, Path.GetFileName(folder));
+                Assert.IsNotNull(childFolder);
+                CheckFolders(childFolder, folder);
             }
             
         }
@@ -196,11 +204,76 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                 System.Threading.Thread.Sleep(300);
                 SetupTest(rootPath, 3, false);
                 System.Threading.Thread.Sleep(300);
-                while (model.HasChanges)
+
+                while (model.HasChanges || model.HasTasksToScan)
                 {
                     System.Threading.Thread.Sleep(300);
                 }
                 
+                CheckFolders(model.RootNodes.First(), rootPath);
+            }
+            finally
+            {
+                Delete(rootPath);
+            }
+        }
+        [Test]
+        public void TestCollectingAndWatchingOnRealData()
+        {
+            var tempPath = Path.GetTempPath();
+            var rootPath = Path.Combine(tempPath, nameof(TestCollectingAndWatchingOnRealData));
+
+            Delete(rootPath);
+
+            Directory.CreateDirectory(rootPath);
+
+            try
+            {
+                var model = new MainWindowViewModel();
+                bool dataIsCreated = false;
+                Task.Run(() =>
+                {
+                    SetupTest(rootPath, 5, false);
+                    dataIsCreated = true;
+                });
+                
+                model.Run(rootPath);
+                System.Threading.Thread.Sleep(300);
+                while (model.HasChanges || !dataIsCreated || model.HasTasksToScan)
+                {
+                    System.Threading.Thread.Sleep(300);
+                }
+                
+                CheckFolders(model.RootNodes.First(), rootPath);
+            }
+            finally
+            {
+                Delete(rootPath);
+            }
+        }
+        [Test]
+        public void TestMoveDirectoryOnRealData()
+        {
+            var tempPath = Path.GetTempPath();
+            var rootPath = Path.Combine(tempPath, nameof(TestMoveDirectoryOnRealData));
+            SetupTest(rootPath, 2);
+            try
+            {
+                var model = new MainWindowViewModel();
+                var scanCompleted = false;
+                model.ScanCompleted += (s, ea) => { scanCompleted = true; };
+                model.Run(rootPath);
+                while (!scanCompleted)
+                {
+
+                }
+                scanCompleted = false;
+                Directory.Move(Path.Combine(rootPath, "Folder0"), Path.Combine(rootPath, "Folder1", "FolderNew"));
+                System.Threading.Thread.Sleep(300);
+                while (model.HasChanges && !scanCompleted)
+                {
+                    System.Threading.Thread.Sleep(300);
+                }
                 CheckFolders(model.RootNodes.First(), rootPath);
             }
             finally
@@ -223,6 +296,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             mockDataProvider.Setup(dp => dp.GetFiles(It.Is<string>(path => path == folder1Path))).Returns(new FileSystemLocationInfo[] { new FileSystemLocationInfo(file1Path, 1) });
             mockDataProvider.Setup(dp => dp.GetFiles(It.Is<string>(path => path == folder2Path))).Returns(new FileSystemLocationInfo[] { new FileSystemLocationInfo(file2Path, 2) });
             mockDataProvider.Setup(dp => dp.GetFiles(It.Is<string>(path => path == folder3Path))).Returns(new FileSystemLocationInfo[] { });
+            
             mockDataProvider.Setup(dp => dp.DirectoryExists(It.Is<string>(path => path == drive))).Returns(true);
             mockDataProvider.Setup(dp => dp.DirectoryExists(It.Is<string>(path => path == folder1Path))).Returns(true);
             mockDataProvider.Setup(dp => dp.DirectoryExists(It.Is<string>(path => path == folder2Path))).Returns(true);
@@ -253,17 +327,19 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             Assert.IsNull(model.FindItem(folder1Path));
 
             Assert.IsNull(model.FindItem(@"C:\4"));
+
+            mockDataProvider.Setup(dp => dp.GetFiles(It.Is<string>(path => path == @"C:\4"))).Returns(new FileSystemLocationInfo[] { });
             mockFileSystemWatcher.Raise(
                 fsw => fsw.Changed += null, mockFileSystemWatcher.Object, new FileSystemChangeEventArgs("4", @"C:\4", FileSystemChangeType.Creation));
                 ;
-            System.Threading.Thread.Sleep(100);
+            System.Threading.Thread.Sleep(200);
             Assert.AreEqual(3, driveItem.Children.Count());
             Assert.IsNotNull(model.FindItem(@"C:\4"));
 
             mockFileSystemWatcher.Raise(
                 fsw => fsw.Changed += null, mockFileSystemWatcher.Object, new FileSystemChangeEventArgs("2.tmp",file2Path, FileSystemChangeType.Change));
             ;
-            System.Threading.Thread.Sleep(100);
+            System.Threading.Thread.Sleep(200);
             Assert.AreEqual(5, driveItem.Size);
             mockFileSystemWatcher.Raise(
                 fsw => fsw.Changed += null, mockFileSystemWatcher.Object, new FileSystemChangeEventArgs("2", folder2Path, FileSystemChangeType.Deletion))
@@ -271,7 +347,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             mockFileSystemWatcher.Raise(
                 fsw => fsw.Changed += null, mockFileSystemWatcher.Object, new FileSystemChangeEventArgs("3", folder3Path, FileSystemChangeType.Deletion))
             ;
-            System.Threading.Thread.Sleep(100);
+            System.Threading.Thread.Sleep(200);
             Assert.AreEqual(1, driveItem.Children.Count());
             Assert.AreEqual(0, driveItem.Size);
             var folder4 = driveItem.Children.FirstOrDefault();

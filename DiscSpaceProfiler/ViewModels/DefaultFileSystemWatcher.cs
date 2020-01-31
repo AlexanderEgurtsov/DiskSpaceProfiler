@@ -14,19 +14,19 @@ namespace DiscSpaceProfiler.ViewModels
 
         void ehChanged(object sender, FileSystemEventArgs e)
         {
-            Changed?.Invoke(this, new FileSystemChangeEventArgs(e.Name, e.FullPath, FileSystemChangeType.Change));
+            Changed?.Invoke(this, new FileSystemChangeEventArgs(Path.GetFileName(e.Name), e.FullPath, FileSystemChangeType.Change));
         }
         void ehCreated(object sender, FileSystemEventArgs e)
         {
-            Changed?.Invoke(this, new FileSystemChangeEventArgs(e.Name, e.FullPath, FileSystemChangeType.Creation));
+            Changed?.Invoke(this, new FileSystemChangeEventArgs(Path.GetFileName(e.Name), e.FullPath, FileSystemChangeType.Creation));
         }
         void ehDeleted(object sender, FileSystemEventArgs e)
         {
-            Changed?.Invoke(this, new FileSystemChangeEventArgs(e.Name, e.FullPath, FileSystemChangeType.Deletion));
+            Changed?.Invoke(this, new FileSystemChangeEventArgs(Path.GetFileName(e.Name), e.FullPath, FileSystemChangeType.Deletion));
         }
         void ehRenamed(object sender, RenamedEventArgs e)
         {
-            Changed?.Invoke(this, new FileSystemChangeEventArgs(e.Name, e.FullPath, e.OldName, e.OldFullPath));
+            Changed?.Invoke(this, new FileSystemChangeEventArgs(Path.GetFileName(e.Name), e.FullPath, Path.GetFileName(e.OldName), e.OldFullPath));
         }
         public void Start(string path)
         {

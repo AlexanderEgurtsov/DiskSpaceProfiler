@@ -30,32 +30,46 @@ namespace DiscSpaceProfiler.ViewModels
             }
         }
 
-        public IEnumerable<string> GetDirectories(string path)
+        public IEnumerable<string> GetDirectoriesWithSimLynksCheck(string path)
         {
-            string[] directories;
+            IEnumerable<DirectoryInfo> enumerator = null;
             try
             {
-                directories = Directory.GetDirectories(path);
+                var dirInfo = new DirectoryInfo(path);
+                if (dirInfo == null)
+                    yield break;
+                enumerator = dirInfo.EnumerateDirectories();
+                if (enumerator == null)
+                    yield break;
             }
             catch
             {
                 yield break;
             }
-            foreach (string directory in directories)
+            foreach (var directoryInfo in enumerator)
             {
-                DirectoryInfo directoryInfo;
-                try
-                {
-                    directoryInfo = new DirectoryInfo(directory);
-                }
-                catch
-                {
-                    continue;
-                }
                 if (!directoryInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
-                    yield return directory;
+                    yield return directoryInfo.FullName;
             }
-            
+        }
+
+        public IEnumerable<string> GetDirectories(string path)
+        {
+            IEnumerable<string> enumerator = null;
+            try
+            {
+                enumerator = Directory.EnumerateDirectories(path);
+                if (enumerator == null)
+                    yield break;
+            }
+            catch
+            {
+                yield break;
+            }
+            foreach (var directoryInfo in enumerator)
+            {
+                yield return directoryInfo;
+            }
         }
         public Tuple<string, long> GetFileInfo(string path)
         {
@@ -73,20 +87,24 @@ namespace DiscSpaceProfiler.ViewModels
         }
         public IEnumerable<Tuple<string, long>> GetFiles(string path)
         {
-            string[] files;
+            IEnumerable<FileInfo> enumerator = null;
             try
             {
-                files = Directory.GetFiles(path);
+                var dirInfo = new DirectoryInfo(path);
+                if (dirInfo == null)
+                    yield break;
+                enumerator = dirInfo.EnumerateFiles();
+                if (enumerator == null)
+                    yield break;
             }
             catch
             {
                 yield break;
             }
-            foreach (string file in files)
+            
+            foreach (var fileInfo in enumerator)
             {
-                var info = GetFileInfo(file);
-                if (info != null)
-                    yield return info;
+                yield return new Tuple<string, long>(fileInfo.FullName, fileInfo.Length);
             }
         }
 

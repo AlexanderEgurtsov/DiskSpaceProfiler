@@ -8,6 +8,7 @@
     xmlns:local="clr-namespace:DiscSpaceProfiler"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ViewModels="clr-namespace:DiscSpaceProfiler.ViewModels"
+    xmlns:dxg1="http://schemas.devexpress.com/winfx/2008/xaml/editors"
     Width="800"
     Height="450"
     mc:Ignorable="d"
@@ -54,7 +55,11 @@
                 FieldName="Size"
                 IsSmart="True"
                 SortIndex="1"
-                SortOrder="Descending" />
+                SortOrder="Descending" AllowEditing="False" >
+                <dxg:TreeListColumn.EditSettings>
+                    <dxg1:TextEditSettings  MaskUseAsDisplayFormat="True" Mask="N0" MaskType="Numeric"/>
+                </dxg:TreeListColumn.EditSettings>
+            </dxg:TreeListColumn>
             <dxg:TreeListColumn
                 FieldName="IsFile"
                 IsSmart="True"

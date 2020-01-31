@@ -32,10 +32,22 @@ namespace DiscSpaceProfiler
             DataContext = viewModel;
             viewModel.ScanCompleted += ehScanCompleted;
             viewModel.Run(@"C:\Addins");
+            updateTimer = new Timer();
+            updateTimer.Interval = 2000;
+            updateTimer.Elapsed += ehUpdateTreeList;
+            updateTimer.Start();
         }
+        Timer updateTimer;
         void ehScanCompleted(object sender, EventArgs e)
         {
             //System.Windows.MessageBox.Show("Scan finished");
+        }
+        void ehUpdateTreeList(object sender, ElapsedEventArgs e)
+        {
+            DispatcherHelper.Invoke(() => {
+                TreeList.BeginDataUpdate();
+                TreeList.EndDataUpdate();
+            });
         }
     }
     public static class ImagesHelper 

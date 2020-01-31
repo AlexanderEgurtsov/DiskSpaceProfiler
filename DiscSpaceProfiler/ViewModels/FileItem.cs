@@ -18,9 +18,9 @@ namespace DiscSpaceProfiler.ViewModels
         { 
         }
         [ExcludeFromCodeCoverage]
-        public override FileSystemItem FindChildren(string path, string name) => null;
+        public override FileSystemItem FindChildren(string name) => null;
         [ExcludeFromCodeCoverage]
-        public override FileSystemItem RemoveChildren(string path, string name) => null;
+        public override FileSystemItem RemoveChildren(string name) => null;
         [ExcludeFromCodeCoverage]
         public override FileSystemItem RenameChildren(string oldName, string oldPath, string name, string path) => null;
     }

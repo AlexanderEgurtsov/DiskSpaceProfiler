@@ -147,13 +147,13 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             Assert.IsTrue(folder2.IsValid);
             Assert.IsTrue(folder1.IsValid);
             Assert.AreEqual(3, folder1.Size);
-            var foundFolder = folder1.FindChildren(@"C:\1\1", "1");
+            var foundFolder = folder1.FindChildren("1");
             Assert.AreEqual(folder2, foundFolder);
-            var foundFile = folder1.FindChildren(@"C:\1\1.txt", "1.txt");
+            var foundFile = folder1.FindChildren("1.txt");
             Assert.AreEqual(file1_1, foundFile);
-            folder1.RemoveChildren(@"C:\1\1", "1");
+            folder1.RemoveChildren("1");
             Assert.AreEqual(1, folder1.Size);
-            folder1.RemoveChildren(@"C:\1\1.txt", "1.txt");
+            folder1.RemoveChildren("1.txt");
             Assert.AreEqual(0, folder1.Size);
         }
 
@@ -181,9 +181,9 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             Assert.IsTrue(folder1.IsValid);
             Assert.AreEqual(3, folder1.Size);
             folder1.RenameChildren("1.txt", @"C:\1\1.txt", "new.txt", @"C:\1\new.txt");
-            var foundFile = folder1.FindChildren(@"C:\1\1.txt", "1.txt");
+            var foundFile = folder1.FindChildren("1.txt");
             Assert.IsNull(foundFile);
-            foundFile = folder1.FindChildren(@"C:\1\new.txt", "new.txt");
+            foundFile = folder1.FindChildren("new.txt");
             Assert.IsNotNull(foundFile);
             foundFile.SetSize(100);
             Assert.AreEqual(100, foundFile.Size);

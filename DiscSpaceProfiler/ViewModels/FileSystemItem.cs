@@ -47,11 +47,7 @@ namespace DiscSpaceProfiler.ViewModels
                 {
                     return;
                 }
-
                 this.isValid = value;
-                this.OnPropertyChanged(nameof(this.IsValid));
-                if (this.isValid)
-                    this.OnPropertyChanged(nameof(this.Size));
             }
         }
         public FileSystemItem Parent { get; private set; }
@@ -69,9 +65,7 @@ namespace DiscSpaceProfiler.ViewModels
                 {
                     return;
                 }
-
                 this.size = value;
-                //this.OnPropertyChanged(nameof(this.Size));
             }
         }
         protected void OnPropertyChanged(string propertyName) 
@@ -90,8 +84,8 @@ namespace DiscSpaceProfiler.ViewModels
         }
         public override string ToString() => Path;
         public abstract FileSystemItem RenameChildren(string oldName, string oldPath, string name, string path);
-        public abstract FileSystemItem RemoveChildren(string path, string name);
-        public abstract FileSystemItem FindChildren(string path, string name);
+        public abstract FileSystemItem RemoveChildren(string name);
+        public abstract FileSystemItem FindChildren(string name);
         public void SetSize(long newSize)
         {
             var sizeDelta = newSize - size;
@@ -99,15 +93,11 @@ namespace DiscSpaceProfiler.ViewModels
         }
         protected void UpdateSize(long size)
         {
-            Size += size;
-            //this.OnPropertyChanged(nameof(Size));
+            lock (this)
+                Size += size;
+            
             FileSystemItemWithChildren parentItem = Parent as FileSystemItemWithChildren;
-            while (parentItem != null)
-            {
-                parentItem.Size += size;
-                //parentItem.OnPropertyChanged(nameof(Size));
-                parentItem = parentItem.Parent as FileSystemItemWithChildren;
-            }
+            parentItem?.UpdateSize(size);
         }
         
 

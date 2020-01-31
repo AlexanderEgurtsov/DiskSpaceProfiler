@@ -48,6 +48,11 @@ namespace DiscSpaceProfiler.ViewModels
 
         public IEnumerable<FileSystemItem> RootNodes => rootNodes;
 
+        public static string GetName(string path) 
+        {
+            return string.Intern(Path.GetFileName(path));
+        }
+
         public void Run(string rootFolder = null)
         {
             scanCompleted = false;
@@ -73,20 +78,20 @@ namespace DiscSpaceProfiler.ViewModels
                 return;
             (parentItem as FileSystemItemWithChildren).IsProcessing = true;
             var parentPath = parentItem.Path;
-            if (string.IsNullOrEmpty(parentPath) || !fileSystemDataProvider.DirectoryExists(parentPath))
+            if (string.IsNullOrEmpty(parentPath)/* || !fileSystemDataProvider.DirectoryExists(parentPath)*/)
                 return;
             var directories = fileSystemDataProvider.GetDirectories(parentPath);
             var files = fileSystemDataProvider.GetFiles(parentPath);
             foreach (string directory in directories)
             {
-                FolderItem folderItem = new FolderItem(directory, Path.GetFileName(directory));
+                FolderItem folderItem = new FolderItem(directory, GetName(directory));
                 parentItem.AddChildren(folderItem);
                 UpdateSearchInfo(directory, folderItem);
                 AddFolderToScan(folderItem);
             }
             foreach (var fileInfo in files)
             {
-                FileItem fileItem = new FileItem(fileInfo.Item1, Path.GetFileName(fileInfo.Item1), fileInfo.Item2);
+                FileItem fileItem = new FileItem(fileInfo.Item1, GetName(fileInfo.Item1), fileInfo.Item2);
                 parentItem.AddChildren(fileItem);
             }
             parentItem.IsProcessing = false;
@@ -98,7 +103,7 @@ namespace DiscSpaceProfiler.ViewModels
         void ehChanged(object sender, FileSystemChangeEventArgs e)
         {
             changedEvents.Enqueue(e);
-            Debug.WriteLine($"{e.Name} {e.Path} {e.ChangeType}");
+            //Debug.WriteLine($"{e.Name} {e.Path} {e.ChangeType}");
         }
 
         void ehScanMonitorTimerElapsed(object sender, ElapsedEventArgs e)
@@ -147,7 +152,7 @@ namespace DiscSpaceProfiler.ViewModels
             scanCompleted = true;
             ScanCompleted?.Invoke(this, EventArgs.Empty);
         }
-        void ProcessChange(FileSystemItem parentItem, FileSystemChangeEventArgs change)
+        void ProcessChange(FileSystemItemWithChildren parentItem, FileSystemChangeEventArgs change)
         {
             if (change == null)
                 return;
@@ -157,7 +162,7 @@ namespace DiscSpaceProfiler.ViewModels
                     ProcessChange(parentItem, change.Path, change.Name);
                     break;
                 case FileSystemChangeType.Deletion:
-                    var deletedItem = parentItem.RemoveChildren(change.Path, change.Name);
+                    var deletedItem = parentItem.RemoveChildren(change.Name);
                     if (deletedItem != null && !deletedItem.IsFile)
                         UpdateSearchInfo(change.Path, null);
                     break;
@@ -172,14 +177,14 @@ namespace DiscSpaceProfiler.ViewModels
             }
         }
 
-        void ProcessChange(FileSystemItem parentItem, string path, string name)
+        void ProcessChange(FileSystemItemWithChildren parentItem, string path, string name)
         {
             if (!fileSystemDataProvider.FileExists(path))
                 return;
             var fileInfo = fileSystemDataProvider.GetFileInfo(path);
             if (fileInfo == null)
                 return;
-            var fileItem = parentItem.FindChildren(path, name);
+            var fileItem = parentItem.FindChildren(name);
             if (fileItem == null)
                 return;
             if (fileItem.Size != fileInfo.Item2)
@@ -210,10 +215,9 @@ namespace DiscSpaceProfiler.ViewModels
                 ProcessChangeForFolder(parentPath, change);
             }
         }
-        void ProcessCreation(FileSystemItem parentItem, FileSystemChangeEventArgs change)
+        void ProcessCreation(FileSystemItemWithChildren parentItem, FileSystemChangeEventArgs change)
         {
             var path = change.Path;
-            var parentItemCasted = parentItem as FileSystemItemWithChildren;
             if (fileSystemDataProvider.FileExists(path))
             {
                 
@@ -222,14 +226,14 @@ namespace DiscSpaceProfiler.ViewModels
                     return;
                 var fileItem = new FileItem(path, change.Name, fileInfo.Item2);
 
-                if (parentItem.FindChildren(fileItem.Path, fileItem.DisplayName) != null)
+                if (parentItem.FindChildren(fileItem.DisplayName) != null)
                     return;
                 parentItem.AddChildren(fileItem);
             }
             else if (fileSystemDataProvider.DirectoryExists(path))
             {
                 var folderItem = new FolderItem(path, change.Name);
-                if (parentItem.FindChildren(folderItem.Path, folderItem.DisplayName) != null)
+                if (parentItem.FindChildren(folderItem.DisplayName) != null)
                     return;
                 parentItem.AddChildren(folderItem);
                 
@@ -244,7 +248,7 @@ namespace DiscSpaceProfiler.ViewModels
         void RunForFolder(string rootFolder)
         {
             rootNodes.Clear();
-            var folderItem = new FolderItem(rootFolder, Path.GetFileName(rootFolder));
+            var folderItem = new FolderItem(rootFolder, GetName(rootFolder));
             rootNodes.Add(folderItem);
             OnPropertyChanged(nameof(RootNodes));
             UpdateSearchInfo(rootFolder, folderItem);

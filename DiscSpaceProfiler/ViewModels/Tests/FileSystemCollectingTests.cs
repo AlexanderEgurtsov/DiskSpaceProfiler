@@ -98,16 +98,20 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             }
         }
 
-        void CheckFiles(FileSystemItem fileSystemItem, string filePath)
+        void CheckFile(FileSystemItem fileSystemItem, string filePath, out long fileSize)
         {
+            
             Assert.IsTrue(fileSystemItem is FileItem);
             Assert.AreEqual(filePath, fileSystemItem.Path);
             Assert.AreEqual(Path.GetFileName(filePath), fileSystemItem.DisplayName);
-            Assert.AreEqual(1, fileSystemItem.Size);
+            FileInfo info = new FileInfo(filePath);
+            fileSize = info.Length;
+            Assert.AreEqual(fileSize, fileSystemItem.Size, filePath);
             
         }
-        void CheckFolders(FileSystemItem rootNode,string rootPath)
+        void CheckFolders(FileSystemItem rootNode,string rootPath, out long folderSize)
         {
+            folderSize = 0;
             Assert.IsTrue(rootNode is FolderItem);
             Assert.AreEqual(rootPath, rootNode.Path);
             Assert.AreEqual(Path.GetFileName(rootPath), rootNode.DisplayName);
@@ -119,18 +123,20 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             for (int i = 0; i < files.Length; i++)
             {
                 var file = files[i];
-                var childFile = rootNode.FindChildren(file, Path.GetFileName(file));
+                var childFile = rootNode.FindChildren(Path.GetFileName(file));
                 Assert.IsNotNull(childFile);
-                CheckFiles(childFile, file);
+                CheckFile(childFile, file, out var fileSize);
+                folderSize += fileSize;
             }
             for (int i = 0; i < directories.Length; i++)
             {
                 var folder = directories[i];
-                var childFolder = rootNode.FindChildren(folder, Path.GetFileName(folder));
+                var childFolder = rootNode.FindChildren(Path.GetFileName(folder));
                 Assert.IsNotNull(childFolder);
-                CheckFolders(childFolder, folder);
+                CheckFolders(childFolder, folder, out var nestedFolderSize);
+                folderSize += nestedFolderSize;
             }
-            
+            Assert.AreEqual(folderSize, rootNode.Size, rootPath);
         }
 
         void SetupTest(string rootPath, int maxCount, bool removeRoot = true)
@@ -169,7 +175,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         {
             var tempPath = Path.GetTempPath();
             var rootPath = Path.Combine(tempPath, nameof(TestCollectingOnRealData));
-            SetupTest(rootPath, 3);
+            SetupTest(rootPath, 5);
             try
             {
                 var model = new MainWindowViewModel();
@@ -180,7 +186,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                 {
 
                 }
-                CheckFolders(model.RootNodes.First(), rootPath);
+                CheckFolders(model.RootNodes.First(), rootPath, out _);
             }
             finally
             {
@@ -210,7 +216,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                     System.Threading.Thread.Sleep(300);
                 }
                 
-                CheckFolders(model.RootNodes.First(), rootPath);
+                CheckFolders(model.RootNodes.First(), rootPath, out _);
             }
             finally
             {
@@ -233,7 +239,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                 bool dataIsCreated = false;
                 Task.Run(() =>
                 {
-                    SetupTest(rootPath, 5, false);
+                    SetupTest(rootPath, 4, false);
                     dataIsCreated = true;
                 });
                 
@@ -244,7 +250,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                     System.Threading.Thread.Sleep(300);
                 }
                 
-                CheckFolders(model.RootNodes.First(), rootPath);
+                CheckFolders(model.RootNodes.First(), rootPath, out _);
             }
             finally
             {
@@ -274,7 +280,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                 {
                     System.Threading.Thread.Sleep(300);
                 }
-                CheckFolders(model.RootNodes.First(), rootPath);
+                CheckFolders(model.RootNodes.First(), rootPath, out _);
             }
             finally
             {

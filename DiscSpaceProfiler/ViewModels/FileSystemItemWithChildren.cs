@@ -56,17 +56,20 @@ namespace DiscSpaceProfiler.ViewModels
         }
         public void UpdateIsValid(bool childrenIsValid)
         {
-            bool oldIsValid = IsValid;
-            if (oldIsValid == childrenIsValid)
-                return;
-            if (!childrenIsValid)
-                IsValid = false;
-            else
-                IsValid = FoldersAreValid();
+            bool oldIsValid = false;
+            lock (this)
+            {
+                oldIsValid = IsValid;
+                if (oldIsValid == childrenIsValid)
+                    return;
+                if (!childrenIsValid)
+                    IsValid = false;
+                else
+                    IsValid = FoldersAreValid();
+            }
             if (oldIsValid != IsValid)
                 (Parent as FileSystemItemWithChildren)?.UpdateIsValid(this.IsValid);
         }
-        object addLock = new object();
         public override void AddChildren(FileSystemItem childItem)
         {
             childItem.SetParent(this);
@@ -74,6 +77,7 @@ namespace DiscSpaceProfiler.ViewModels
             if (childItem is FileItem fileItem)
             {
                 AddFile(fileItem);
+                UpdateSize(childItem.Size);
             }
             else
                 if (childItem is FolderItem folderItem)
@@ -82,12 +86,12 @@ namespace DiscSpaceProfiler.ViewModels
             }
             if (isFirstItem)
                 OnPropertyChanged(nameof(HasChildren));
-            UpdateSize(childItem.Size);
+            
             UpdateIsValid(childItem.IsValid);
             OnPropertyChanged(nameof(Children));
         }
         public override bool HasChildren => (files != null && files.Count > 0) || (folders != null && folders.Count > 0);
-        public override FileSystemItem FindChildren(string path, string name)
+        public override FileSystemItem FindChildren(string name)
         {
             if (folders != null)
                 for (int i = 0; i < folders.Count; i++)
@@ -105,9 +109,9 @@ namespace DiscSpaceProfiler.ViewModels
                 }
             return null;
         }
-        public override FileSystemItem RemoveChildren(string path, string name) 
+        public override FileSystemItem RemoveChildren(string name) 
         {
-            var children = FindChildren(path, name);
+            var children = FindChildren(name);
             if (children == null)
                 return null;
             if (children is FileItem fileItem)
@@ -122,7 +126,7 @@ namespace DiscSpaceProfiler.ViewModels
         }
         public override FileSystemItem RenameChildren(string oldName, string oldPath, string name, string path) 
         {
-            var children = FindChildren(oldPath, oldName);
+            var children = FindChildren(oldName);
             if (children == null)
                 return null;
             children.SetPath(path);

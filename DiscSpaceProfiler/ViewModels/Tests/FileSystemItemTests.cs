@@ -24,9 +24,8 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         [Test]
         public void FilePropertiesTest()
         {
-            var fileItem = new FileItem(@"C:\\1.txt", "1.txt", 10);
+            var fileItem = new FileItem("1.txt", 10);
             Assert.AreEqual(@"1.txt", fileItem.DisplayName);
-            Assert.AreEqual(@"C:\\1.txt", fileItem.Path);
             Assert.IsNull(fileItem.Parent);
             Assert.IsFalse(fileItem.HasChildren);
             Assert.IsTrue(fileItem.IsFile);
@@ -84,8 +83,8 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             Assert.AreEqual(0, drive.Size);
             Assert.AreEqual(0, folder1.Size);
             Assert.AreEqual(0, folder2.Size);
-            var file1_1 = new FileItem(@"C:\\1\\1.txt", "1.txt", 1);
-            var file2_1 = new FileItem(@"C:\\2\\1.txt", "1.txt", 2);
+            var file1_1 = new FileItem("1.txt", 1);
+            var file2_1 = new FileItem("1.txt", 2);
             folder1.AddChildren(file1_1);
             Assert.AreEqual(folder1, file1_1.Parent);
             Assert.AreEqual(1, folder1.Size);
@@ -108,8 +107,8 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             Assert.IsFalse(folder2.IsValid);
             Assert.AreEqual(0, folder1.Size);
             Assert.AreEqual(0, folder2.Size);
-            var file1_1 = new FileItem(@"C:\1\1.txt", "1.txt", 1);
-            var file2_1 = new FileItem(@"C:\1\2\1.txt", "1.txt", 2);
+            var file1_1 = new FileItem("1.txt", 1);
+            var file2_1 = new FileItem("1.txt", 2);
             folder1.AddChildren(folder2);
             folder1.AddChildren(file1_1);
             Assert.AreEqual(2, folder1.Children.Count());
@@ -133,8 +132,8 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             Assert.IsFalse(folder2.IsValid);
             Assert.AreEqual(0, folder1.Size);
             Assert.AreEqual(0, folder2.Size);
-            var file1_1 = new FileItem(@"C:\1\1.txt", "1.txt", 1);
-            var file2_1 = new FileItem(@"C:\1\1\1.txt", "1.txt", 2);
+            var file1_1 = new FileItem("1.txt", 1);
+            var file2_1 = new FileItem("1.txt", 2);
             folder1.AddChildren(folder2);
             folder1.AddChildren(file1_1);
             Assert.AreEqual(2, folder1.Children.Count());
@@ -166,8 +165,8 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             Assert.IsFalse(folder2.IsValid);
             Assert.AreEqual(0, folder1.Size);
             Assert.AreEqual(0, folder2.Size);
-            var file1_1 = new FileItem(@"C:\1\1.txt", "1.txt", 1);
-            var file2_1 = new FileItem(@"C:\1\1\1.txt", "1.txt", 2);
+            var file1_1 = new FileItem("1.txt", 1);
+            var file2_1 = new FileItem("1.txt", 2);
             folder1.AddChildren(folder2);
             folder1.AddChildren(file1_1);
             Assert.AreEqual(2, folder1.Children.Count());

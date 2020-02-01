@@ -102,10 +102,10 @@ namespace DiscSpaceProfiler
                 return null;
             if (item.IsFile)
                 return GetFileIcon(item.DisplayName);
-            if (item is FolderItem)
-                return GetFolderIcon(item.Path);
+            if (item is FolderItem folderItem)
+                return GetFolderIcon(folderItem.Path);
             if (item is DriveItem)
-                return GetDriveIcon(item.Path);
+                return GetDriveIcon(item.DisplayName);
             return null;
         }
     }

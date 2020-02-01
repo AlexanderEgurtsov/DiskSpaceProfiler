@@ -7,7 +7,7 @@ namespace DiscSpaceProfiler.ViewModels
 {
     public class FileItem : FileSystemItem
     {
-        public FileItem(string path, string displayName, long size) : base(path, displayName)
+        public FileItem(string displayName, long size) : base(displayName)
         {
             Size = size;
         }

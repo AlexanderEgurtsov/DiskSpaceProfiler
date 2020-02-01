@@ -37,7 +37,7 @@ namespace DiscSpaceProfiler.ViewModels
             try
             {
                 fileInfo = new FileInfo(path);
-                return new Tuple<string, long>(fileInfo.FullName, fileInfo.Length);
+                return new Tuple<string, long>(fileInfo.Name, fileInfo.Length);
             }
             catch
             {
@@ -66,13 +66,13 @@ namespace DiscSpaceProfiler.ViewModels
             {
                 if (fileSystemInfo is FileInfo fileInfo)
                 {
-                    yield return new FileItem(fileInfo.FullName, fileInfo.Name, fileInfo.Length);
+                    yield return new FileItem(string.Intern(fileInfo.Name), fileInfo.Length);
                 }
                 else
                 if (fileSystemInfo is DirectoryInfo directoryInfo)
                 {
                     if (!directoryInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
-                        yield return new FolderItem(directoryInfo.FullName, directoryInfo.Name);
+                        yield return new FolderItem(directoryInfo.FullName, string.Intern(directoryInfo.Name));
                 }
             }
         }

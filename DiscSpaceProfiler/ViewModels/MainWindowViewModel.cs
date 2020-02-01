@@ -76,7 +76,7 @@ namespace DiscSpaceProfiler.ViewModels
                 if (fileSystemItem is FolderItem folderItem)
                 {
                     yield return fileSystemItem;
-                    UpdateSearchInfo(fileSystemItem.Path, folderItem);
+                    UpdateSearchInfo(folderItem.Path, folderItem);
                     AddFolderToScan(folderItem);
                 }
                 else
@@ -91,7 +91,7 @@ namespace DiscSpaceProfiler.ViewModels
             var parentPath = parentItem.Path;
             if (string.IsNullOrEmpty(parentPath))
                 return;
-            parentItem.AddChildrens(ProcessContent(fileSystemDataProvider.GetDirectoryContent(parentPath)));
+            parentItem.AddChildrenRange(ProcessContent(fileSystemDataProvider.GetDirectoryContent(parentPath)));
             parentItem.IsProcessing = false;
             if (!parentItem.HasChildren)
             {
@@ -222,7 +222,7 @@ namespace DiscSpaceProfiler.ViewModels
                 var fileInfo = fileSystemDataProvider.GetFileInfo(path);
                 if (fileInfo == null)
                     return;
-                var fileItem = new FileItem(path, change.Name, fileInfo.Item2);
+                var fileItem = new FileItem(change.Name, fileInfo.Item2);
 
                 if (parentItem.FindChildren(fileItem.DisplayName) != null)
                     return;
@@ -260,7 +260,7 @@ namespace DiscSpaceProfiler.ViewModels
             {
                 watcher.Changed += ehChanged;
                 Task.Run(ProcessChangesTask);
-                watcher.Start(RootNodes.FirstOrDefault().Path);
+                watcher.Start((RootNodes.FirstOrDefault() as FolderItem).Path);
             }
         }
 

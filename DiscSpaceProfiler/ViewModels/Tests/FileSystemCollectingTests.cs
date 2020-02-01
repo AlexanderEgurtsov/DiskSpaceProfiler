@@ -45,7 +45,6 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         {
             
             Assert.IsTrue(fileSystemItem is FileItem);
-            Assert.AreEqual(filePath, fileSystemItem.Path);
             Assert.AreEqual(Path.GetFileName(filePath), fileSystemItem.DisplayName);
             FileInfo info = new FileInfo(filePath);
             fileSize = info.Length;
@@ -56,7 +55,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         {
             folderSize = 0;
             Assert.IsTrue(rootNode is FolderItem);
-            Assert.AreEqual(rootPath, rootNode.Path);
+            Assert.AreEqual(rootPath, (rootNode as FolderItem).Path);
             Assert.AreEqual(Path.GetFileName(rootPath), rootNode.DisplayName);
             Assert.IsTrue(rootNode.IsValid);
             var directories = Directory.GetDirectories(rootPath);

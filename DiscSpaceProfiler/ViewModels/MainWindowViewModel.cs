@@ -21,8 +21,8 @@ namespace DiscSpaceProfiler.ViewModels
         List<Task> activeTasks = new List<Task>();
         ConcurrentQueue<FileSystemChangeEventArgs> changedEvents = new ConcurrentQueue<FileSystemChangeEventArgs>();
         IFileSystemDataProvider fileSystemDataProvider;
-        Dictionary<string, FileSystemItemWithChildren> fileSystemHash = new Dictionary<string, FileSystemItemWithChildren>();
-        ConcurrentQueue<FileSystemItemWithChildren> foldersToScan = new ConcurrentQueue<FileSystemItemWithChildren>();
+        Dictionary<string, FolderItem> fileSystemHash = new Dictionary<string, FolderItem>();
+        ConcurrentQueue<FolderItem> foldersToScan = new ConcurrentQueue<FolderItem>();
         int maxNestingLevel;
         int maxTasksCount;
         List<FileSystemItem> rootNodes = new List<FileSystemItem>();
@@ -53,47 +53,45 @@ namespace DiscSpaceProfiler.ViewModels
             return string.Intern(Path.GetFileName(path));
         }
 
-        public void Run(string rootFolder = null)
+        public void Run(string rootFolder)
         {
             scanCompleted = false;
-            if (string.IsNullOrEmpty(rootFolder))
-                RunForLocalDrive();
-            else
-                RunForFolder(rootFolder);
+            RunForFolder(rootFolder);
             scanMonitorTimer = new Timer(100);
             scanMonitorTimer.Elapsed += ehScanMonitorTimerElapsed;
             scanMonitorTimer.Start();
 
         }
 
-        void AddFolderToScan(FileSystemItemWithChildren item)
+        void AddFolderToScan(FolderItem item)
         {
             item.IsProcessing = true;
             foldersToScan.Enqueue(item);
         }
-        IEnumerable<FileItem> GetFileItems(IEnumerable<Tuple<string, long>> files)
+
+        IEnumerable<FileSystemItem> ProcessContent(IEnumerable<FileSystemItem> directoryContent)
         {
-            foreach (Tuple<string, long> fileInfo in files)
-                yield return new FileItem(fileInfo.Item1, GetName(fileInfo.Item1), fileInfo.Item2);
+            foreach (FileSystemItem fileSystemItem in directoryContent)
+            {
+                if (fileSystemItem is FolderItem folderItem)
+                {
+                    yield return fileSystemItem;
+                    UpdateSearchInfo(fileSystemItem.Path, folderItem);
+                    AddFolderToScan(folderItem);
+                }
+                else
+                    yield return fileSystemItem;
+            }
         }
-        void CollectNestedItems(FileSystemItemWithChildren parentItem)
+        void CollectNestedItems(FolderItem parentItem)
         {
             if (parentItem == null || parentItem.IsFile)
                 return;
-            (parentItem as FileSystemItemWithChildren).IsProcessing = true;
+            (parentItem as FolderItem).IsProcessing = true;
             var parentPath = parentItem.Path;
             if (string.IsNullOrEmpty(parentPath))
                 return;
-            var directories = fileSystemDataProvider.GetDirectories(parentPath);
-            var files = fileSystemDataProvider.GetFiles(parentPath);
-            foreach (string directory in directories)
-            {
-                FolderItem folderItem = new FolderItem(directory, GetName(directory));
-                parentItem.AddChildren(folderItem);
-                UpdateSearchInfo(directory, folderItem);
-                AddFolderToScan(folderItem);
-            }
-            parentItem.AddFiles(GetFileItems(files));
+            parentItem.AddChildrens(ProcessContent(fileSystemDataProvider.GetDirectoryContent(parentPath)));
             parentItem.IsProcessing = false;
             if (!parentItem.HasChildren)
             {
@@ -152,7 +150,7 @@ namespace DiscSpaceProfiler.ViewModels
             scanCompleted = true;
             ScanCompleted?.Invoke(this, EventArgs.Empty);
         }
-        void ProcessChange(FileSystemItemWithChildren parentItem, FileSystemChangeEventArgs change)
+        void ProcessChange(FolderItem parentItem, FileSystemChangeEventArgs change)
         {
             if (change == null)
                 return;
@@ -177,7 +175,7 @@ namespace DiscSpaceProfiler.ViewModels
             }
         }
 
-        void ProcessChange(FileSystemItemWithChildren parentItem, string path, string name)
+        void ProcessChange(FolderItem parentItem, string path, string name)
         {
             if (!fileSystemDataProvider.FileExists(path))
                 return;
@@ -195,7 +193,7 @@ namespace DiscSpaceProfiler.ViewModels
         {
             if (string.IsNullOrEmpty(parentPath) || change == null)
                 return;
-            var parentItem = FindItem(parentPath) as FileSystemItemWithChildren;
+            var parentItem = FindItem(parentPath) as FolderItem;
             if (parentItem == null)
                 return;
             while (parentItem.IsProcessing)
@@ -215,7 +213,7 @@ namespace DiscSpaceProfiler.ViewModels
                 ProcessChangeForFolder(parentPath, change);
             }
         }
-        void ProcessCreation(FileSystemItemWithChildren parentItem, FileSystemChangeEventArgs change)
+        void ProcessCreation(FolderItem parentItem, FileSystemChangeEventArgs change)
         {
             var path = change.Path;
             if (fileSystemDataProvider.FileExists(path))
@@ -256,21 +254,6 @@ namespace DiscSpaceProfiler.ViewModels
             CollectNestedItems(folderItem);
         }
 
-        void RunForLocalDrive()
-        {
-            rootNodes.Clear();
-            var drives = fileSystemDataProvider.GetDrives();
-            if (drives == null)
-                return;
-            var driveInfo = drives.First();
-            DriveItem driveItem = new DriveItem(driveInfo.Item1);
-            UpdateSearchInfo(driveItem.Path, driveItem);
-            rootNodes.Add(driveItem);
-            OnPropertyChanged(nameof(RootNodes));
-            StartListeningForChanges();
-            CollectNestedItems(driveItem);
-        }
-
         private void StartListeningForChanges()
         {
             if (!watcher.Active)
@@ -281,7 +264,7 @@ namespace DiscSpaceProfiler.ViewModels
             }
         }
 
-        private void UpdateSearchInfo(string directory, FileSystemItemWithChildren folderItem)
+        private void UpdateSearchInfo(string directory, FolderItem folderItem)
         {
             if (folderItem != null)
             {

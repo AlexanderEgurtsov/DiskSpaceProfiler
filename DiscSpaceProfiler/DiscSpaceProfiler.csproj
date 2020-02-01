@@ -91,7 +91,6 @@
     <Compile Include="ViewModels\DriveItem.cs" />
     <Compile Include="ViewModels\FileItem.cs" />
     <Compile Include="ViewModels\FileSystemItem.cs" />
-    <Compile Include="ViewModels\FileSystemItemWithChildren.cs" />
     <Compile Include="ViewModels\FolderItem.cs" />
     <Compile Include="ViewModels\IFileSystemDataProvider.cs" />
     <Compile Include="ViewModels\IFileSystemWatcher.cs" />

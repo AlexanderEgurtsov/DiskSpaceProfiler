@@ -14,64 +14,6 @@ namespace DiscSpaceProfiler.ViewModels.Tests
     [TestFixture]
     public class FileSystemCollectingTests
     {
-        [Test]
-        public void TestCollectionsOnMockData() 
-        {
-            var drive = @"C:\\";
-            var folder1Path = @"C:\\1";
-            var folder2Path = @"C:\\2";
-            var folder3Path = @"C:\\3";
-            var file1Path = @"C:\\1\1.tmp";
-            var file2Path = @"C:\\2\2.tmp";
-            var mockDataProvider = new Mock<IFileSystemDataProvider>();
-            var mockFileSystemWatcher = new Mock<IFileSystemWatcher>();
-            mockDataProvider.Setup(dp => dp.GetDrives()).Returns(new FileSystemLocationInfo[] { new FileSystemLocationInfo(drive, 3)});
-            mockDataProvider.Setup(dp => dp.GetDirectories(It.Is<string>(path => path == drive))).Returns(new string[] { folder1Path, folder2Path, folder3Path });
-            mockDataProvider.Setup(dp => dp.GetFiles(It.Is<string>(path => path == folder1Path))).Returns(new FileSystemLocationInfo[] { new FileSystemLocationInfo(file1Path, 1) });
-            mockDataProvider.Setup(dp => dp.GetFiles(It.Is<string>(path => path == folder2Path))).Returns(new FileSystemLocationInfo[] { new FileSystemLocationInfo(file2Path, 2) });
-            mockDataProvider.Setup(dp => dp.GetFiles(It.Is<string>(path => path == folder3Path))).Returns(new FileSystemLocationInfo[] {  });
-            mockDataProvider.Setup(dp => dp.DirectoryExists(It.Is<string>(path => path == drive))).Returns(true);
-            mockDataProvider.Setup(dp => dp.DirectoryExists(It.Is<string>(path => path == folder1Path))).Returns(true);
-            mockDataProvider.Setup(dp => dp.DirectoryExists(It.Is<string>(path => path == folder2Path))).Returns(true);
-            mockDataProvider.Setup(dp => dp.DirectoryExists(It.Is<string>(path => path == folder3Path))).Returns(true);
-            MainWindowViewModel model = new MainWindowViewModel(mockDataProvider.Object, mockFileSystemWatcher.Object, 1, 1);
-            var scanCompleted = false;
-            model.ScanCompleted += (s, ea)=> { scanCompleted = true; };
-            model.Run();
-            while (!scanCompleted)
-            {
-                
-            }
-            Assert.IsNotNull(model.RootNodes);
-            Assert.AreEqual(1, model.RootNodes.Count());
-            var driveItem = model.RootNodes.First();
-            Assert.IsNotNull(driveItem);
-            Assert.AreEqual(3, driveItem.Size);
-            Assert.IsTrue(driveItem.IsValid);
-            Assert.AreEqual(3, driveItem.Children.Count());
-            var folders = driveItem.Children.ToArray();
-            var folder1Item = folders[0];
-            Assert.IsNotNull(folder1Item);
-            Assert.AreEqual(1, folder1Item.Size);
-            Assert.IsTrue(folder1Item.IsValid);
-            Assert.AreEqual(1, folder1Item.Children.Count());
-            Assert.AreEqual(file1Path, folder1Item.Children.First().Path);
-            Assert.AreEqual(1, folder1Item.Children.First().Size);
-
-            var folder2Item = folders[1];
-            Assert.IsNotNull(folder2Item);
-            Assert.AreEqual(2, folder2Item.Size);
-            Assert.IsTrue(folder2Item.IsValid);
-            Assert.AreEqual(1, folder1Item.Children.Count());
-            Assert.AreEqual(file2Path, folder2Item.Children.First().Path);
-            Assert.AreEqual(2, folder2Item.Children.First().Size);
-
-            var folder3Item = folders[2];
-            Assert.IsNotNull(folder3Item);
-            Assert.AreEqual(0, folder3Item.Size);
-            Assert.IsTrue(folder3Item.IsValid);
-            Assert.AreEqual(0, folder3Item.Children.Count());
-        }
 
         void CreateFiles(string newPath, int maxItemsCount)
         {
@@ -83,6 +25,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                     stream.Flush();
                     stream.Close();
                 }
+                
             }
         }
         void GenerateFolder(string rootPath, string prefix, int maxItemsCount) 
@@ -123,7 +66,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             for (int i = 0; i < files.Length; i++)
             {
                 var file = files[i];
-                var childFile = rootNode.FindChildren(Path.GetFileName(file));
+                var childFile = (rootNode as FolderItem)?.FindChildren(Path.GetFileName(file));
                 Assert.IsNotNull(childFile);
                 CheckFile(childFile, file, out var fileSize);
                 folderSize += fileSize;
@@ -131,7 +74,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             for (int i = 0; i < directories.Length; i++)
             {
                 var folder = directories[i];
-                var childFolder = rootNode.FindChildren(Path.GetFileName(folder));
+                var childFolder = (rootNode as FolderItem)?.FindChildren(Path.GetFileName(folder));
                 Assert.IsNotNull(childFolder);
                 CheckFolders(childFolder, folder, out var nestedFolderSize);
                 folderSize += nestedFolderSize;
@@ -288,84 +231,69 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             }
         }
         [Test]
-        public void TestUpdateOnMockData()
+        public void TestRenameOnRealData()
         {
-            var drive = @"C:\";
-            var folder1Path = @"C:\1";
-            var folder2Path = @"C:\2";
-            var folder3Path = @"C:\3";
-            var file1Path = @"C:\1\1.tmp";
-            var file2Path = @"C:\2\2.tmp";
-            var mockDataProvider = new Mock<IFileSystemDataProvider>();
-            mockDataProvider.Setup(dp => dp.GetDrives()).Returns(new FileSystemLocationInfo[] { new FileSystemLocationInfo(drive, 3) });
-            mockDataProvider.Setup(dp => dp.GetDirectories(It.Is<string>(path => path == drive))).Returns(new string[] { folder1Path, folder2Path, folder3Path });
-            mockDataProvider.Setup(dp => dp.GetFiles(It.Is<string>(path => path == folder1Path))).Returns(new FileSystemLocationInfo[] { new FileSystemLocationInfo(file1Path, 1) });
-            mockDataProvider.Setup(dp => dp.GetFiles(It.Is<string>(path => path == folder2Path))).Returns(new FileSystemLocationInfo[] { new FileSystemLocationInfo(file2Path, 2) });
-            mockDataProvider.Setup(dp => dp.GetFiles(It.Is<string>(path => path == folder3Path))).Returns(new FileSystemLocationInfo[] { });
-            
-            mockDataProvider.Setup(dp => dp.DirectoryExists(It.Is<string>(path => path == drive))).Returns(true);
-            mockDataProvider.Setup(dp => dp.DirectoryExists(It.Is<string>(path => path == folder1Path))).Returns(true);
-            mockDataProvider.Setup(dp => dp.DirectoryExists(It.Is<string>(path => path == folder2Path))).Returns(true);
-            mockDataProvider.Setup(dp => dp.DirectoryExists(It.Is<string>(path => path == folder3Path))).Returns(true);
-            mockDataProvider.Setup(dp => dp.DirectoryExists(It.Is<string>(path => path == @"C:\4"))).Returns(true);
-            mockDataProvider.Setup(dp => dp.FileExists(It.Is<string>(path => path == file1Path))).Returns(true);
-            mockDataProvider.Setup(dp => dp.FileExists(It.Is<string>(path => path == file2Path))).Returns(true);
-            mockDataProvider.Setup(dp => dp.GetFileInfo(It.Is<string>(path => path == file2Path))).Returns( new FileSystemLocationInfo(file2Path, 5));
-            var mockFileSystemWatcher = new Mock<IFileSystemWatcher>();
-            
-            
-            MainWindowViewModel model = new MainWindowViewModel(mockDataProvider.Object, mockFileSystemWatcher.Object, 1, 1);
-            var scanCompleted = false;
-            model.ScanCompleted += (s, ea) => { scanCompleted = true; };
-            model.Run();
-            while (!scanCompleted)
+            var tempPath = Path.GetTempPath();
+            var rootPath = Path.Combine(tempPath, nameof(TestRenameOnRealData));
+            SetupTest(rootPath, 2);
+            try
             {
+                var model = new MainWindowViewModel();
+                var scanCompleted = false;
+                model.ScanCompleted += (s, ea) => { scanCompleted = true; };
+                model.Run(rootPath);
+                while (!scanCompleted)
+                {
 
+                }
+                scanCompleted = false;
+                File.Move(Path.Combine(rootPath, @"Folder0\File0.txt"), Path.Combine(rootPath, @"Folder0\NewFile0.txt"));
+                System.Threading.Thread.Sleep(300);
+                while (model.HasChanges && !scanCompleted)
+                {
+                    System.Threading.Thread.Sleep(300);
+                }
+                CheckFolders(model.RootNodes.First(), rootPath, out _);
             }
-            var driveItem = model.RootNodes.First();
-            Assert.IsNotNull(model.FindItem(folder1Path));
-            mockFileSystemWatcher.Raise(
-                fsw => fsw.Changed += null, mockFileSystemWatcher.Object, new FileSystemChangeEventArgs("1", folder1Path, FileSystemChangeType.Deletion))
-                ;
-            System.Threading.Thread.Sleep(100);
-            Assert.AreEqual(2, driveItem.Children.Count());
-            Assert.AreEqual(2, driveItem.Size);
-            Assert.IsNull(model.FindItem(folder1Path));
+            finally
+            {
+                Delete(rootPath);
+            }
+        }
+        [Test]
+        public void TestFileChangeOnRealData()
+        {
+            var tempPath = Path.GetTempPath();
+            var rootPath = Path.Combine(tempPath, nameof(TestFileChangeOnRealData));
+            SetupTest(rootPath, 2);
+            try
+            {
+                var model = new MainWindowViewModel();
+                var scanCompleted = false;
+                model.ScanCompleted += (s, ea) => { scanCompleted = true; };
+                model.Run(rootPath);
+                while (!scanCompleted)
+                {
 
-            Assert.IsNull(model.FindItem(@"C:\4"));
-
-            mockDataProvider.Setup(dp => dp.GetFiles(It.Is<string>(path => path == @"C:\4"))).Returns(new FileSystemLocationInfo[] { });
-            mockFileSystemWatcher.Raise(
-                fsw => fsw.Changed += null, mockFileSystemWatcher.Object, new FileSystemChangeEventArgs("4", @"C:\4", FileSystemChangeType.Creation));
-                ;
-            System.Threading.Thread.Sleep(200);
-            Assert.AreEqual(3, driveItem.Children.Count());
-            Assert.IsNotNull(model.FindItem(@"C:\4"));
-
-            mockFileSystemWatcher.Raise(
-                fsw => fsw.Changed += null, mockFileSystemWatcher.Object, new FileSystemChangeEventArgs("2.tmp",file2Path, FileSystemChangeType.Change));
-            ;
-            System.Threading.Thread.Sleep(200);
-            Assert.AreEqual(5, driveItem.Size);
-            mockFileSystemWatcher.Raise(
-                fsw => fsw.Changed += null, mockFileSystemWatcher.Object, new FileSystemChangeEventArgs("2", folder2Path, FileSystemChangeType.Deletion))
-            ;
-            mockFileSystemWatcher.Raise(
-                fsw => fsw.Changed += null, mockFileSystemWatcher.Object, new FileSystemChangeEventArgs("3", folder3Path, FileSystemChangeType.Deletion))
-            ;
-            System.Threading.Thread.Sleep(200);
-            Assert.AreEqual(1, driveItem.Children.Count());
-            Assert.AreEqual(0, driveItem.Size);
-            var folder4 = driveItem.Children.FirstOrDefault();
-            Assert.IsNotNull(folder4);
-            Assert.IsNull(model.FindItem(@"C:\41"));
-            mockFileSystemWatcher.Raise(
-                fsw => fsw.Changed += null, mockFileSystemWatcher.Object, new FileSystemChangeEventArgs("41", @"C:\41", "4", @"C:\4"));
-            ;
-            System.Threading.Thread.Sleep(100);
-            Assert.IsNotNull(model.FindItem(@"C:\41"));
-            Assert.AreEqual("41", folder4.DisplayName);
-            Assert.AreEqual(@"C:\41", folder4.Path);
+                }
+                scanCompleted = false;
+                using (var stream = File.Create(Path.Combine(rootPath, @"Folder0\File0.txt")))
+                {
+                    stream.Write(new byte[] { 134, 135 }, 0, 2);
+                    stream.Flush();
+                    stream.Close();
+                }
+                System.Threading.Thread.Sleep(300);
+                while (model.HasChanges && !scanCompleted)
+                {
+                    System.Threading.Thread.Sleep(300);
+                }
+                CheckFolders(model.RootNodes.First(), rootPath, out _);
+            }
+            finally
+            {
+                Delete(rootPath);
+            }
         }
     }
 }

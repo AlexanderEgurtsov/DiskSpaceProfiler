@@ -10,18 +10,7 @@ namespace DiscSpaceProfiler.ViewModels
         public FileItem(string path, string displayName, long size) : base(path, displayName)
         {
             Size = size;
-            IsValid = true;
         }
         public override bool IsFile => true;
-        [ExcludeFromCodeCoverage]
-        public override void AddChildren(FileSystemItem fileItem)
-        { 
-        }
-        [ExcludeFromCodeCoverage]
-        public override FileSystemItem FindChildren(string name) => null;
-        [ExcludeFromCodeCoverage]
-        public override FileSystemItem RemoveChildren(string name) => null;
-        [ExcludeFromCodeCoverage]
-        public override FileSystemItem RenameChildren(string oldName, string oldPath, string name, string path) => null;
     }
 }

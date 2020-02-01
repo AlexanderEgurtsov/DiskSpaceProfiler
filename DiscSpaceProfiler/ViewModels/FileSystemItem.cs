@@ -34,22 +34,8 @@ namespace DiscSpaceProfiler.ViewModels
         public string DisplayName { get; private set; }
         public virtual bool HasChildren => false;
         public virtual bool IsFile => false;
-        bool isValid;
-        public bool IsValid
-        {
-            get
-            {
-                return this.isValid;
-            }
-            protected set
-            {
-                if (this.isValid == value)
-                {
-                    return;
-                }
-                this.isValid = value;
-            }
-        }
+        public virtual bool IsValid => true;
+        
         public FileSystemItem Parent { get; private set; }
         public string Path { get; private set; }
         long size;
@@ -76,16 +62,13 @@ namespace DiscSpaceProfiler.ViewModels
         }
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public abstract void AddChildren(FileSystemItem fileItem);
         
         public void SetParent(FileSystemItem parent)
         {
             Parent = parent;
         }
         public override string ToString() => Path;
-        public abstract FileSystemItem RenameChildren(string oldName, string oldPath, string name, string path);
-        public abstract FileSystemItem RemoveChildren(string name);
-        public abstract FileSystemItem FindChildren(string name);
+
         public void SetSize(long newSize)
         {
             var sizeDelta = newSize - size;
@@ -96,7 +79,7 @@ namespace DiscSpaceProfiler.ViewModels
             lock (this)
                 Size += size;
             
-            FileSystemItemWithChildren parentItem = Parent as FileSystemItemWithChildren;
+            FolderItem parentItem = Parent as FolderItem;
             parentItem?.UpdateSize(size);
         }
         

@@ -55,44 +55,31 @@ namespace DiscSpaceProfiler
         static Dictionary<string, ImageSource> fileIcons = new Dictionary<string, ImageSource>();
         static ImageSource folderIcon = null;
         static ImageSource driveIcon = null;
-        public static ImageSource GetFolderIcon(string path)
+        static ImageSource GetIconInternal(string path, ItemType itemType)
         {
-            if (folderIcon == null)
+            using (var icon = ShellManager.GetIcon(path, itemType))
             {
-                using (var icon = ShellManager.GetIcon(path, ItemType.Folder))
-                {
-                    folderIcon = Imaging.CreateBitmapSourceFromHIcon(icon.Handle,
-                        Int32Rect.Empty,
-                        BitmapSizeOptions.FromWidthAndHeight(16, 16));
-                }
+                return Imaging.CreateBitmapSourceFromHIcon(icon.Handle,
+                    Int32Rect.Empty,
+                    BitmapSizeOptions.FromWidthAndHeight(16, 16));
             }
+        }
+        public static ImageSource GetFolderIcon(FolderItem folderItem)
+        {
+            if (folderItem.Parent == null)
+                return GetIconInternal(folderItem.Path, ItemType.Folder);
+            if (folderIcon == null)
+                folderIcon = GetIconInternal(folderItem.Path, ItemType.Folder);
             return folderIcon;
         }
-        public static ImageSource GetDriveIcon(string path)
-        {
-            if (driveIcon == null)
-            {
-                using (var icon = ShellManager.GetIcon(path, ItemType.Folder))
-                {
-                    driveIcon = Imaging.CreateBitmapSourceFromHIcon(icon.Handle,
-                        Int32Rect.Empty,
-                        BitmapSizeOptions.FromWidthAndHeight(16, 16));
-                }
-            }
-            return driveIcon;
-        }
-        public static ImageSource GetFileIcon(string fileName) 
+
+        public static ImageSource GetFileIcon(string fileName)
         {
             var ext = System.IO.Path.GetExtension(fileName);
             if (!fileIcons.TryGetValue(ext, out var fileIcon))
             {
-                using (var icon = ShellManager.GetIcon(ext, ItemType.File))
-                {
-                    fileIcon = Imaging.CreateBitmapSourceFromHIcon(icon.Handle,
-                        Int32Rect.Empty,
-                        BitmapSizeOptions.FromWidthAndHeight(16, 16));
-                    fileIcons.Add(ext, fileIcon);
-                }
+                fileIcon = GetIconInternal(ext, ItemType.File);
+                fileIcons.Add(ext, fileIcon);
             }
             return fileIcon;
         }
@@ -103,9 +90,7 @@ namespace DiscSpaceProfiler
             if (item.IsFile)
                 return GetFileIcon(item.DisplayName);
             if (item is FolderItem folderItem)
-                return GetFolderIcon(folderItem.Path);
-            if (item is DriveItem)
-                return GetDriveIcon(item.DisplayName);
+                return GetFolderIcon(folderItem);
             return null;
         }
     }

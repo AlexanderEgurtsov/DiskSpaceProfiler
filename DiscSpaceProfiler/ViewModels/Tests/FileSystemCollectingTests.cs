@@ -14,7 +14,6 @@ namespace DiscSpaceProfiler.ViewModels.Tests
     [TestFixture]
     public class FileSystemCollectingTests
     {
-
         void CreateFiles(string newPath, int maxItemsCount)
         {
             for (int i = 0; i < maxItemsCount; i++)
@@ -51,12 +50,15 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             Assert.AreEqual(fileSize, fileSystemItem.Size, filePath);
             
         }
-        void CheckFolders(FileSystemItem rootNode,string rootPath, out long folderSize)
+        void CheckFolders(FileSystemItem rootNode, string rootPath, MainWindowViewModel model, out long folderSize)
         {
             folderSize = 0;
             Assert.IsTrue(rootNode is FolderItem);
             Assert.AreEqual(rootPath, (rootNode as FolderItem).Path);
-            Assert.AreEqual(Path.GetFileName(rootPath), rootNode.DisplayName);
+            if (rootNode.Parent != null)
+                Assert.AreEqual(Path.GetFileName(rootPath), rootNode.DisplayName);
+            else
+                Assert.AreEqual(rootPath, rootNode.DisplayName);
             Assert.IsTrue(rootNode.IsValid);
             var directories = Directory.GetDirectories(rootPath);
             var files = Directory.GetFiles(rootPath);
@@ -75,7 +77,8 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                 var folder = directories[i];
                 var childFolder = (rootNode as FolderItem)?.FindChildren(Path.GetFileName(folder));
                 Assert.IsNotNull(childFolder);
-                CheckFolders(childFolder, folder, out var nestedFolderSize);
+                Assert.IsNotNull(model.FindItem(folder));
+                CheckFolders(childFolder, folder, model, out var nestedFolderSize);
                 folderSize += nestedFolderSize;
             }
             Assert.AreEqual(folderSize, rootNode.Size, rootPath);
@@ -128,7 +131,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                 {
 
                 }
-                CheckFolders(model.RootNodes.First(), rootPath, out _);
+                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
             }
             finally
             {
@@ -140,11 +143,8 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         {
             var tempPath = Path.GetTempPath();
             var rootPath = Path.Combine(tempPath, nameof(TestWatchingOnRealData));
-            
             Delete(rootPath);
-            
             Directory.CreateDirectory(rootPath);
-            
             try
             {
                 var model = new MainWindowViewModel();
@@ -152,13 +152,11 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                 System.Threading.Thread.Sleep(300);
                 SetupTest(rootPath, 3, false);
                 System.Threading.Thread.Sleep(300);
-
                 while (model.HasChanges || model.HasTasksToScan)
                 {
                     System.Threading.Thread.Sleep(300);
                 }
-                
-                CheckFolders(model.RootNodes.First(), rootPath, out _);
+                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
             }
             finally
             {
@@ -192,7 +190,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                     System.Threading.Thread.Sleep(300);
                 }
                 
-                CheckFolders(model.RootNodes.First(), rootPath, out _);
+                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
             }
             finally
             {
@@ -222,7 +220,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                 {
                     System.Threading.Thread.Sleep(300);
                 }
-                CheckFolders(model.RootNodes.First(), rootPath, out _);
+                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
             }
             finally
             {
@@ -252,7 +250,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                 {
                     System.Threading.Thread.Sleep(300);
                 }
-                CheckFolders(model.RootNodes.First(), rootPath, out _);
+                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
             }
             finally
             {
@@ -287,7 +285,50 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                 {
                     System.Threading.Thread.Sleep(300);
                 }
-                CheckFolders(model.RootNodes.First(), rootPath, out _);
+                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+            }
+            finally
+            {
+                Delete(rootPath);
+            }
+        }
+        [Test]
+        public void TestCollectingAndWatchingOnRealDataWithDelete()
+        {
+            var tempPath = Path.GetTempPath();
+            var rootPath = Path.Combine(tempPath, nameof(TestCollectingAndWatchingOnRealDataWithDelete));
+
+            Delete(rootPath);
+
+            Directory.CreateDirectory(rootPath);
+
+            try
+            {
+                var model = new MainWindowViewModel();
+                bool dataIsCreated = false;
+                Task.Run(() =>
+                {
+                    SetupTest(rootPath, 4, false);
+                    dataIsCreated = true;
+                });
+
+                model.Run(rootPath);
+                System.Threading.Thread.Sleep(300);
+                while (model.HasChanges || !dataIsCreated || model.HasTasksToScan)
+                {
+                    System.Threading.Thread.Sleep(300);
+                }
+
+                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                foreach (string item in Directory.GetDirectories(rootPath))
+                {
+                    Delete(item);
+                }
+                while (model.HasChanges || !dataIsCreated || model.HasTasksToScan)
+                {
+                    System.Threading.Thread.Sleep(300);
+                }
+                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
             }
             finally
             {

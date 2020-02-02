@@ -13,9 +13,9 @@ namespace DiscSpaceProfiler.ViewModels.Tests
     {
         [Test]
         public void DrivePropertiesTest() {
-            var driveItem = new DriveItem(@"C:\\");
-            Assert.AreEqual(@"C:\\", driveItem.DisplayName);
-            Assert.AreEqual(@"C:\\", driveItem.Path);
+            var driveItem = new FolderItem(@"C:\", @"C:\");
+            Assert.AreEqual(@"C:\", driveItem.DisplayName);
+            Assert.AreEqual(@"C:\", driveItem.Path);
             Assert.IsNull(driveItem.Parent);
             Assert.IsFalse(driveItem.HasChildren);
             Assert.IsFalse(driveItem.IsFile);
@@ -36,9 +36,9 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         [Test]
         public void FolderPropertiesTest()
         {
-            var folderItem = new FolderItem(@"C:\\1", "1");
+            var folderItem = new FolderItem(@"C:\1", "1");
             Assert.AreEqual(@"1", folderItem.DisplayName);
-            Assert.AreEqual(@"C:\\1", folderItem.Path);
+            Assert.AreEqual(@"C:\1", folderItem.Path);
             Assert.IsNull(folderItem.Parent);
             Assert.IsFalse(folderItem.HasChildren);
             Assert.IsFalse(folderItem.IsFile);
@@ -47,9 +47,9 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         [Test]
         public void DriveFolderStructureTest() 
         {
-            var drive = new DriveItem(@"C:\\");
-            var folder1 = new FolderItem(@"C:\\1", "1");
-            var folder2 = new FolderItem(@"C:\\2", "2");
+            var drive = new FolderItem(@"C:\", @"C:\");
+            var folder1 = new FolderItem(@"C:\1", "1");
+            var folder2 = new FolderItem(@"C:\2", "2");
             drive.AddChildren(folder1);
             drive.AddChildren(folder2);
             Assert.AreEqual(drive, folder1.Parent);
@@ -67,9 +67,9 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         [Test]
         public void DriveFolderFileStructureTest()
         {
-            var drive = new DriveItem(@"C:\\");
-            var folder1 = new FolderItem(@"C:\\1", "1");
-            var folder2 = new FolderItem(@"C:\\2", "2");
+            var drive = new FolderItem(@"C:\", @"C:\");
+            var folder1 = new FolderItem(@"C:\1", "1");
+            var folder2 = new FolderItem(@"C:\2", "2");
             drive.AddChildren(folder1);
             drive.AddChildren(folder2);
             Assert.AreEqual(drive, folder1.Parent);

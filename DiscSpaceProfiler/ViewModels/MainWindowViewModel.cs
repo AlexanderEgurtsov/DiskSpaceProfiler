@@ -7,7 +7,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-
 using System.Threading.Tasks;
 using System.Timers;
 
@@ -15,32 +14,28 @@ namespace DiscSpaceProfiler.ViewModels
 {
     public class MainWindowViewModel : INotifyPropertyChanged
     {
-        const int INT_MaxNestingLevel = 2;
         const int INT_MaxTaskCount = 150;
-
         List<Task> activeTasks = new List<Task>();
         ConcurrentQueue<FileSystemChangeEventArgs> changedEvents = new ConcurrentQueue<FileSystemChangeEventArgs>();
-        IFileSystemDataProvider fileSystemDataProvider;
+        IFileSystemDataProvider fileSystemProvider;
         Dictionary<string, FolderItem> fileSystemHash = new Dictionary<string, FolderItem>();
         ConcurrentQueue<FolderItem> foldersToScan = new ConcurrentQueue<FolderItem>();
-        int maxNestingLevel;
         int maxTasksCount;
         List<FileSystemItem> rootNodes = new List<FileSystemItem>();
         Timer scanMonitorTimer;
-        IFileSystemWatcher watcher;
+        IFileSystemWatcher fileSystemWatcher;
+        Task processChangesTask;
         bool scanCompleted;
+        System.Threading.CancellationTokenSource processChangesTaskCancellation;
 
-        public MainWindowViewModel() : this(new DefaultFileSystemDataProvider(), new DefaultFileSystemWatcher(), INT_MaxTaskCount, INT_MaxNestingLevel)
+        public MainWindowViewModel()
         {
-
-        }
-
-        public MainWindowViewModel(IFileSystemDataProvider fileSystemDataProvider, IFileSystemWatcher watcher, int tasksCount, int maxNestingLevel)
-        {
-            this.fileSystemDataProvider = fileSystemDataProvider;
-            this.maxTasksCount = tasksCount;
-            this.maxNestingLevel = maxNestingLevel;
-            this.watcher = watcher;
+            fileSystemProvider = new DefaultFileSystemDataProvider();
+            fileSystemWatcher = new DefaultFileSystemWatcher();
+            maxTasksCount = INT_MaxTaskCount;
+            scanMonitorTimer = new Timer(100);
+            scanMonitorTimer.Elapsed += ehScanMonitorTimerElapsed;
+            fileSystemWatcher.Changed += ehChanged;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -53,14 +48,24 @@ namespace DiscSpaceProfiler.ViewModels
             return string.Intern(Path.GetFileName(path));
         }
 
+        void StopWatcher()
+        {
+            fileSystemWatcher.Stop();
+            if (processChangesTask != null && !processChangesTask.IsCompleted && !processChangesTask.IsCanceled)
+                processChangesTaskCancellation?.Cancel();
+        }
+
         public void Run(string rootFolder)
         {
-            scanCompleted = false;
+            StopWatcher();
             RunForFolder(rootFolder);
-            scanMonitorTimer = new Timer(100);
-            scanMonitorTimer.Elapsed += ehScanMonitorTimerElapsed;
-            scanMonitorTimer.Start();
+            StartScan();
+        }
 
+        private void StartScan()
+        {
+            scanCompleted = false;
+            scanMonitorTimer.Start();
         }
 
         void AddFolderToScan(FolderItem item)
@@ -91,7 +96,7 @@ namespace DiscSpaceProfiler.ViewModels
             var parentPath = parentItem.Path;
             if (string.IsNullOrEmpty(parentPath))
                 return;
-            parentItem.AddChildrenRange(ProcessContent(fileSystemDataProvider.GetDirectoryContent(parentPath)));
+            parentItem.AddChildrenRange(ProcessContent(fileSystemProvider.GetDirectoryContent(parentPath)));
             parentItem.IsProcessing = false;
             if (!parentItem.HasChildren)
             {
@@ -101,7 +106,11 @@ namespace DiscSpaceProfiler.ViewModels
         void ehChanged(object sender, FileSystemChangeEventArgs e)
         {
             changedEvents.Enqueue(e);
-            //Debug.WriteLine($"{e.Name} {e.Path} {e.ChangeType}");
+            if (processChangesTask == null || processChangesTask.IsCompleted || processChangesTask.IsCanceled)
+            {
+                processChangesTaskCancellation = new System.Threading.CancellationTokenSource();
+                processChangesTask = Task.Run(ProcessChangesTask, processChangesTaskCancellation.Token);
+            }
         }
 
         void ehScanMonitorTimerElapsed(object sender, ElapsedEventArgs e)
@@ -129,8 +138,9 @@ namespace DiscSpaceProfiler.ViewModels
 
         public FileSystemItem FindItem(string parentPath)
         {
-            if (fileSystemHash.TryGetValue(parentPath, out var result))
-                return result;
+            lock (fileSystemHash)
+                if (fileSystemHash.TryGetValue(parentPath, out var result))
+                    return result;
             return null;
         }
 
@@ -177,9 +187,9 @@ namespace DiscSpaceProfiler.ViewModels
 
         void ProcessChange(FolderItem parentItem, string path, string name)
         {
-            if (!fileSystemDataProvider.FileExists(path))
+            if (!fileSystemProvider.FileExists(path))
                 return;
-            var fileInfo = fileSystemDataProvider.GetFileInfo(path);
+            var fileInfo = fileSystemProvider.GetFileInfo(path);
             if (fileInfo == null)
                 return;
             var fileItem = parentItem.FindChildren(name);
@@ -198,17 +208,16 @@ namespace DiscSpaceProfiler.ViewModels
                 return;
             while (parentItem.IsProcessing)
             {
-                
+                if (processChangesTaskCancellation!= null && processChangesTaskCancellation.IsCancellationRequested)
+                    return;
             }
             ProcessChange(parentItem, change);
         }
+
         void ProcessChangesTask()
         {
-            while (true)
+            while (changedEvents.TryDequeue(out var change))
             {
-                if (!changedEvents.TryDequeue(out var change))
-                    continue;
-
                 var parentPath = Path.GetDirectoryName(change.Path);
                 ProcessChangeForFolder(parentPath, change);
             }
@@ -216,10 +225,10 @@ namespace DiscSpaceProfiler.ViewModels
         void ProcessCreation(FolderItem parentItem, FileSystemChangeEventArgs change)
         {
             var path = change.Path;
-            if (fileSystemDataProvider.FileExists(path))
+            if (fileSystemProvider.FileExists(path))
             {
                 
-                var fileInfo = fileSystemDataProvider.GetFileInfo(path);
+                var fileInfo = fileSystemProvider.GetFileInfo(path);
                 if (fileInfo == null)
                     return;
                 var fileItem = new FileItem(change.Name, fileInfo.Item2);
@@ -228,25 +237,23 @@ namespace DiscSpaceProfiler.ViewModels
                     return;
                 parentItem.AddChildren(fileItem);
             }
-            else if (fileSystemDataProvider.DirectoryExists(path))
+            else if (fileSystemProvider.DirectoryExists(path))
             {
                 var folderItem = new FolderItem(path, change.Name);
                 if (parentItem.FindChildren(folderItem.DisplayName) != null)
                     return;
                 parentItem.AddChildren(folderItem);
-                
                 UpdateSearchInfo(path, folderItem);
-                
                 AddFolderToScan(folderItem);
-                scanCompleted = false;
-                scanMonitorTimer.Start();
+                StartScan();
             }
         }
 
         void RunForFolder(string rootFolder)
         {
             rootNodes.Clear();
-            var folderItem = new FolderItem(rootFolder, GetName(rootFolder));
+            OnPropertyChanged(nameof(RootNodes));
+            var folderItem = new FolderItem(rootFolder, rootFolder);
             rootNodes.Add(folderItem);
             OnPropertyChanged(nameof(RootNodes));
             UpdateSearchInfo(rootFolder, folderItem);
@@ -256,28 +263,24 @@ namespace DiscSpaceProfiler.ViewModels
 
         private void StartListeningForChanges()
         {
-            if (!watcher.Active)
-            {
-                watcher.Changed += ehChanged;
-                Task.Run(ProcessChangesTask);
-                watcher.Start((RootNodes.FirstOrDefault() as FolderItem).Path);
-            }
+            fileSystemWatcher.Start((RootNodes.FirstOrDefault() as FolderItem).Path);
         }
 
         private void UpdateSearchInfo(string directory, FolderItem folderItem)
         {
-            if (folderItem != null)
-            {
-                if (!fileSystemHash.ContainsKey(directory))
-                    fileSystemHash.Add(directory, folderItem);
+            lock (fileSystemHash)
+                if (folderItem != null)
+                {
+                    if (!fileSystemHash.ContainsKey(directory))
+                        fileSystemHash.Add(directory, folderItem);
+                    else
+                        fileSystemHash[directory] = folderItem;
+                }
                 else
-                    fileSystemHash[directory] = folderItem;
-            }
-            else
-            {
-                if (fileSystemHash.ContainsKey(directory))
-                    fileSystemHash.Remove(directory);
-            }
+                {
+                    if (fileSystemHash.ContainsKey(directory))
+                        fileSystemHash.Remove(directory);
+                }
         }
 
 #if DEBUG

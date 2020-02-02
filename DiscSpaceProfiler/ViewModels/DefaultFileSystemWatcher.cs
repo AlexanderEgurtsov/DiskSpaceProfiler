@@ -32,7 +32,7 @@ namespace DiscSpaceProfiler.ViewModels
         {
             watcher = new FileSystemWatcher() { Path = path, IncludeSubdirectories = true};
             watcher.NotifyFilter = NotifyFilters.Size | NotifyFilters.DirectoryName | NotifyFilters.FileName | NotifyFilters.CreationTime;
-            watcher.InternalBufferSize = watcher.InternalBufferSize * 10;
+            watcher.InternalBufferSize = watcher.InternalBufferSize;
             watcher.Changed += ehChanged;
             watcher.Created += ehCreated;
             watcher.Deleted += ehDeleted;

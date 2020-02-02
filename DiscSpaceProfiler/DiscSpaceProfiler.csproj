@@ -88,7 +88,6 @@
     <Compile Include="ViewModels\DefaultFileSystemDataProvider.cs" />
     <Compile Include="ViewModels\DefaultFileSystemWatcher.cs" />
     <Compile Include="ViewModels\DispatcherHelper.cs" />
-    <Compile Include="ViewModels\DriveItem.cs" />
     <Compile Include="ViewModels\FileItem.cs" />
     <Compile Include="ViewModels\FileSystemItem.cs" />
     <Compile Include="ViewModels\FolderItem.cs" />

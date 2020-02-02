@@ -21,11 +21,18 @@ namespace DiscSpaceProfiler.ViewModels
         Dictionary<string, FolderItem> fileSystemHash = new Dictionary<string, FolderItem>();
         ConcurrentQueue<FolderItem> foldersToScan = new ConcurrentQueue<FolderItem>();
         int maxTasksCount;
-        List<FileSystemItem> rootNodes = new List<FileSystemItem>();
         Timer scanMonitorTimer;
         IFileSystemWatcher fileSystemWatcher;
         Task processChangesTask;
         bool scanCompleted;
+        public string RootPath {
+            get
+            {
+                if (RootNodes == null || RootNodes.Count == 0)
+                    return string.Empty;
+                return RootNodes[0].DisplayName;
+            }
+        }
         System.Threading.CancellationTokenSource processChangesTaskCancellation;
 
         public MainWindowViewModel()
@@ -36,12 +43,13 @@ namespace DiscSpaceProfiler.ViewModels
             scanMonitorTimer = new Timer(100);
             scanMonitorTimer.Elapsed += ehScanMonitorTimerElapsed;
             fileSystemWatcher.Changed += ehChanged;
+            RootNodes = new ObservableCollection<FolderItem>();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
         public event EventHandler ScanCompleted;
 
-        public IEnumerable<FileSystemItem> RootNodes => rootNodes;
+        public ObservableCollection<FolderItem> RootNodes { get; private set; }
 
         public static string GetName(string path)
         {
@@ -251,11 +259,11 @@ namespace DiscSpaceProfiler.ViewModels
 
         void RunForFolder(string rootFolder)
         {
-            rootNodes.Clear();
-            OnPropertyChanged(nameof(RootNodes));
+            RootNodes.Clear();
             var folderItem = new FolderItem(rootFolder, rootFolder);
-            rootNodes.Add(folderItem);
+            RootNodes.Add(folderItem);
             OnPropertyChanged(nameof(RootNodes));
+            OnPropertyChanged(nameof(RootPath));
             UpdateSearchInfo(rootFolder, folderItem);
             StartListeningForChanges();
             CollectNestedItems(folderItem);

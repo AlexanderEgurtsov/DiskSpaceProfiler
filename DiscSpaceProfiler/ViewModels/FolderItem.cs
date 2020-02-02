@@ -142,7 +142,10 @@ namespace DiscSpaceProfiler.ViewModels
                     isValid = FoldersAreValid();
             }
             if (oldIsValid != IsValid)
+            {
+                OnPropertyChanged(nameof(IsValid));
                 (Parent as FolderItem)?.UpdateIsValid(this.IsValid);
+            }
         }
 
         void AddFile(FileItem fileItem)
@@ -161,9 +164,9 @@ namespace DiscSpaceProfiler.ViewModels
         {
             if (folders == null)
                 return true;
-            foreach (FolderItem folderItem in folders)
+            for (int i = 0; i < folders.Count; i++)
             {
-                if (!folderItem.IsValid)
+                if (!folders[i].IsValid)
                     return false;
             }
             return true;

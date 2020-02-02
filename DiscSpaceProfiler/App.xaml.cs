@@ -18,6 +18,7 @@ namespace DiscSpaceProfiler
         {
             var viewModel = new MainWindowViewModel();
             MainWindow window = new MainWindow(viewModel);
+            window.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             window.Show();
         }
     }

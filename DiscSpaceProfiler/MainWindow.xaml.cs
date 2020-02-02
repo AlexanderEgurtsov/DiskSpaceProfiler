@@ -12,6 +12,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
+//using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -29,25 +30,48 @@ namespace DiscSpaceProfiler
         public MainWindow(MainWindowViewModel viewModel)
         {
             InitializeComponent();
-            DataContext = viewModel;
-            viewModel.ScanCompleted += ehScanCompleted;
-            viewModel.Run(@"C:\Addins");
+            ViewModel = viewModel;
+            DataContext = this;
             updateTimer = new Timer();
             updateTimer.Interval = 2000;
             updateTimer.Elapsed += ehUpdateTreeList;
+            ScanFolderCommand = new DevExpress.Mvvm.DelegateCommand(ScanFolder);
+            Loaded += ehLoaded;
+        }
+        
+        public ICommand ScanFolderCommand
+        {
+            get;
+            private set;
+        }
+        void ScanFolder()
+        {
+            updateTimer.Stop();
+            var dialog = new System.Windows.Forms.FolderBrowserDialog();
+            dialog.Description = "Choose a folder to profile:";
+            dialog.ShowNewFolderButton = false;
+            if (!string.IsNullOrEmpty(ViewModel.RootPath))
+                dialog.SelectedPath = ViewModel.RootPath;
+            dialog.RootFolder = Environment.SpecialFolder.MyComputer;
+            var result = dialog.ShowDialog();
+            if (result != System.Windows.Forms.DialogResult.OK)
+                return;
+            ViewModel.Run(dialog.SelectedPath);
             updateTimer.Start();
         }
+        public MainWindowViewModel ViewModel { get; private set; }
         Timer updateTimer;
-        void ehScanCompleted(object sender, EventArgs e)
-        {
-            //System.Windows.MessageBox.Show("Scan finished");
-        }
+        
         void ehUpdateTreeList(object sender, ElapsedEventArgs e)
         {
             DispatcherHelper.Invoke(() => {
                 TreeList.BeginDataUpdate();
                 TreeList.EndDataUpdate();
             });
+        }
+        void ehLoaded(object sender, RoutedEventArgs e)
+        {
+            ScanFolder();
         }
     }
     public static class ImagesHelper 

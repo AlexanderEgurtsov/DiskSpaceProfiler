@@ -1,10 +1,7 @@
 ﻿#if DEBUG
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DiscSpaceProfiler.ViewModels.Tests
 {
@@ -13,9 +10,9 @@ namespace DiscSpaceProfiler.ViewModels.Tests
     {
         [Test]
         public void DrivePropertiesTest() {
-            var driveItem = new FolderItem(@"C:\", @"C:\");
+            var driveItem = new FolderItem(@"C:\");
             Assert.AreEqual(@"C:\", driveItem.DisplayName);
-            Assert.AreEqual(@"C:\", driveItem.Path);
+            Assert.AreEqual(@"C:\", driveItem.GetPath());
             Assert.IsNull(driveItem.Parent);
             Assert.IsFalse(driveItem.HasChildren);
             Assert.IsFalse(driveItem.IsFile);
@@ -36,9 +33,9 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         [Test]
         public void FolderPropertiesTest()
         {
-            var folderItem = new FolderItem(@"C:\1", "1");
+            var folderItem = new FolderItem("1");
             Assert.AreEqual(@"1", folderItem.DisplayName);
-            Assert.AreEqual(@"C:\1", folderItem.Path);
+            Assert.AreEqual(@"1", folderItem.GetPath());
             Assert.IsNull(folderItem.Parent);
             Assert.IsFalse(folderItem.HasChildren);
             Assert.IsFalse(folderItem.IsFile);
@@ -47,9 +44,9 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         [Test]
         public void DriveFolderStructureTest() 
         {
-            var drive = new FolderItem(@"C:\", @"C:\");
-            var folder1 = new FolderItem(@"C:\1", "1");
-            var folder2 = new FolderItem(@"C:\2", "2");
+            var drive = new FolderItem(@"C:\");
+            var folder1 = new FolderItem("1");
+            var folder2 = new FolderItem("2");
             drive.AddChildren(folder1);
             drive.AddChildren(folder2);
             Assert.AreEqual(drive, folder1.Parent);
@@ -67,9 +64,9 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         [Test]
         public void DriveFolderFileStructureTest()
         {
-            var drive = new FolderItem(@"C:\", @"C:\");
-            var folder1 = new FolderItem(@"C:\1", "1");
-            var folder2 = new FolderItem(@"C:\2", "2");
+            var drive = new FolderItem(@"C:\");
+            var folder1 = new FolderItem("1");
+            var folder2 = new FolderItem("2");
             drive.AddChildren(folder1);
             drive.AddChildren(folder2);
             Assert.AreEqual(drive, folder1.Parent);
@@ -101,8 +98,8 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         [Test]
         public void NestedFolderFileStructureTest()
         {
-            var folder1 = new FolderItem(@"C:\1", "1");
-            var folder2 = new FolderItem(@"C:\1\2", "2");
+            var folder1 = new FolderItem(@"C:\1");
+            var folder2 = new FolderItem("2");
             Assert.IsFalse(folder1.IsValid);
             Assert.IsFalse(folder2.IsValid);
             Assert.AreEqual(0, folder1.Size);
@@ -126,8 +123,8 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         [Test]
         public void NestedFolderFindRemoveStructureTest()
         {
-            var folder1 = new FolderItem(@"C:\1", "1");
-            var folder2 = new FolderItem(@"C:\1\1", "1");
+            var folder1 = new FolderItem(@"C:\1");
+            var folder2 = new FolderItem("1");
             Assert.IsFalse(folder1.IsValid);
             Assert.IsFalse(folder2.IsValid);
             Assert.AreEqual(0, folder1.Size);
@@ -159,8 +156,8 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         [Test]
         public void NestedFolderRemoveSetSizeStructureTest()
         {
-            var folder1 = new FolderItem(@"C:\1", "1");
-            var folder2 = new FolderItem(@"C:\1\1", "1");
+            var folder1 = new FolderItem(@"C:\1");
+            var folder2 = new FolderItem("1");
             Assert.IsFalse(folder1.IsValid);
             Assert.IsFalse(folder2.IsValid);
             Assert.AreEqual(0, folder1.Size);

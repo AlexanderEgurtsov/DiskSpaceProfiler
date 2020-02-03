@@ -6,14 +6,13 @@ namespace DiscSpaceProfiler.ViewModels
 {
     public class FolderItem : FileSystemItem
     {
+        object childrenLock = new object();
         List<FileItem> files;
         List<FolderItem> folders;
         bool isValid;
-        object childrenLock = new object();
 
-        public FolderItem(string path, string displayName) : base(displayName)
+        public FolderItem(string displayName) : base(displayName)
         {
-            Path = path;
         }
 
         public override IEnumerable<FileSystemItem> Children
@@ -41,7 +40,6 @@ namespace DiscSpaceProfiler.ViewModels
             }
         }
         public bool IsProcessing { get; set; }
-
         public override bool IsValid
         {
             get
@@ -49,7 +47,6 @@ namespace DiscSpaceProfiler.ViewModels
                 return this.isValid;
             }
         }
-        public string Path { get; private set; }
 
         public void AddChildren(FileSystemItem childItem)
         {
@@ -116,11 +113,11 @@ namespace DiscSpaceProfiler.ViewModels
             }
             return null;
         }
-        public FileSystemItem RemoveChildren(string name)
+        public void RemoveChildren(string name)
         {
             var children = FindChildren(name);
             if (children == null)
-                return null;
+                return;
             lock (childrenLock)
             {
                 if (children is FileItem fileItem)
@@ -132,21 +129,13 @@ namespace DiscSpaceProfiler.ViewModels
                 UpdateIsValid(true);
             UpdateSize(-children.Size);
             OnPropertyChanged(nameof(Children));
-            return children;
         }
-        public FileSystemItem RenameChildren(string oldName, string oldPath, string name, string path)
+        public void RenameChildren(string oldName, string oldPath, string name, string path)
         {
             var children = FindChildren(oldName);
             if (children == null)
-                return null;
-            (children as FolderItem)?.SetPath(path);
+                return;
             children.SetDisplayName(name);
-            return children;
-        }
-        public void SetPath(string path)
-        {
-            Path = path;
-            OnPropertyChanged(nameof(Path));
         }
         public void UpdateIsValid(bool childrenIsValid)
         {
@@ -167,7 +156,6 @@ namespace DiscSpaceProfiler.ViewModels
                 (Parent as FolderItem)?.UpdateIsValid(this.IsValid);
             }
         }
-
         void AddFile(FileItem fileItem)
         {
             if (files == null)
@@ -194,6 +182,5 @@ namespace DiscSpaceProfiler.ViewModels
             }
             return true;
         }
-
     }
 }

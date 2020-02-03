@@ -1,16 +1,11 @@
 ﻿#if DEBUG
 using NUnit.Framework;
-using Moq;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 
 namespace DiscSpaceProfiler.ViewModels.Tests
 {
-    using FileSystemLocationInfo = Tuple<string, long>;
     [TestFixture]
     public class FileSystemCollectingTests
     {
@@ -42,9 +37,9 @@ namespace DiscSpaceProfiler.ViewModels.Tests
 
         void CheckFile(FileSystemItem fileSystemItem, string filePath, out long fileSize)
         {
-            
             Assert.IsTrue(fileSystemItem is FileItem);
             Assert.AreEqual(Path.GetFileName(filePath), fileSystemItem.DisplayName);
+            Assert.AreEqual(filePath, fileSystemItem.GetPath());
             FileInfo info = new FileInfo(filePath);
             fileSize = info.Length;
             Assert.AreEqual(fileSize, fileSystemItem.Size, filePath);
@@ -54,7 +49,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         {
             folderSize = 0;
             Assert.IsTrue(rootNode is FolderItem);
-            Assert.AreEqual(rootPath, (rootNode as FolderItem).Path);
+            Assert.AreEqual(rootPath, (rootNode as FolderItem).GetPath());
             if (rootNode.Parent != null)
                 Assert.AreEqual(Path.GetFileName(rootPath), rootNode.DisplayName);
             else
@@ -328,7 +323,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         public void StressTestCollectingAndWatchingOnRealData()
         {
             var tempPath = Path.GetTempPath();
-            var rootPath = Path.Combine(tempPath, nameof(StressTestCollectingAndWatchingOnRealData));
+            var rootPath = Path.Combine(tempPath, nameof(TestCollectingAndWatchingOnRealData));
 
             Delete(rootPath);
 

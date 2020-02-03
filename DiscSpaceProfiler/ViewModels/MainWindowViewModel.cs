@@ -1,10 +1,7 @@
-﻿using DevExpress.Xpf.Grid;
-using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -20,7 +17,6 @@ namespace DiscSpaceProfiler.ViewModels
         const int INT_MaxTaskCount = 5;
         List<Task> activeTasks = new List<Task>();
         ConcurrentQueue<FileSystemChangeEventArgs> changedEvents = new ConcurrentQueue<FileSystemChangeEventArgs>();
-        Dictionary<string, FolderItem> fileSystemHash = new Dictionary<string, FolderItem>();
         IFileSystemDataProvider fileSystemProvider;
         IFileSystemWatcher fileSystemWatcher;
         CancellationTokenSource folderScanTokenSource;
@@ -77,10 +73,30 @@ namespace DiscSpaceProfiler.ViewModels
 
         public FileSystemItem FindItem(string parentPath)
         {
-            lock (fileSystemHash)
-                if (fileSystemHash.TryGetValue(parentPath, out var result))
-                    return result;
-            return null;
+            if (!parentPath.StartsWith(RootPath))
+                return null;
+            if (parentPath == RootPath)
+                return RootNodes.FirstOrDefault();
+            parentPath = parentPath.Remove(0, RootPath.Length);
+            if (string.IsNullOrEmpty(parentPath))
+                return null;
+            if (parentPath[0] == Path.DirectorySeparatorChar)
+                parentPath = parentPath.Remove(0, 1);
+            if (string.IsNullOrEmpty(parentPath))
+                return null;
+            var childNames = parentPath.Split(Path.DirectorySeparatorChar);
+            if (childNames == null || childNames.Length == 0)
+                return null;
+            var currentNode = RootNodes.FirstOrDefault();
+            if (currentNode == null)
+                return null;
+            for (int i = 0; i < childNames.Length; i++)
+            {
+                currentNode = currentNode.FindChildren(childNames[i]) as FolderItem;
+                if (currentNode == null)
+                    return null;
+            }
+            return currentNode;
         }
         public void Run(string rootFolder)
         {
@@ -118,7 +134,7 @@ namespace DiscSpaceProfiler.ViewModels
             if (cancellationToken.IsCancellationRequested)
                 return;
             (parentItem as FolderItem).IsProcessing = true;
-            var parentPath = parentItem.Path;
+            var parentPath = parentItem.GetPath();
             if (string.IsNullOrEmpty(parentPath))
                 return;
             parentItem.AddChildrenRange(ProcessContent(fileSystemProvider.GetDirectoryContent(parentPath), cancellationToken));
@@ -194,17 +210,13 @@ namespace DiscSpaceProfiler.ViewModels
                     ProcessChange(parentItem, change.Path, change.Name);
                     break;
                 case FileSystemChangeType.Deletion:
-                    var deletedItem = parentItem.RemoveChildren(change.Name);
-                    if (deletedItem != null && !deletedItem.IsFile)
-                        UpdateSearchInfo(change.Path, null);
+                    parentItem.RemoveChildren(change.Name);
                     break;
                 case FileSystemChangeType.Creation:
                     ProcessCreation(parentItem, change);
                     break;
                 case FileSystemChangeType.Rename:
-                    var newItem = parentItem.RenameChildren(change.OldName, change.OldPath, change.Name, change.Path);
-                    if (newItem is FolderItem folderItem)
-                        UpdateSearchInfo(change.Path, folderItem);
+                    parentItem.RenameChildren(change.OldName, change.OldPath, change.Name, change.Path);
                     break;
             }
         }
@@ -252,7 +264,6 @@ namespace DiscSpaceProfiler.ViewModels
                 if (fileSystemItem is FolderItem folderItem)
                 {
                     yield return fileSystemItem;
-                    UpdateSearchInfo(folderItem.Path, folderItem);
                     AddFolderToScan(folderItem);
                 }
                 else
@@ -276,11 +287,10 @@ namespace DiscSpaceProfiler.ViewModels
             }
             else if (fileSystemProvider.DirectoryExists(path))
             {
-                var folderItem = new FolderItem(path, change.Name);
+                var folderItem = new FolderItem(change.Name);
                 if (parentItem.FindChildren(folderItem.DisplayName) != null)
                     return;
                 parentItem.AddChildren(folderItem);
-                UpdateSearchInfo(path, folderItem);
                 AddFolderToScan(folderItem);
             }
         }
@@ -288,38 +298,21 @@ namespace DiscSpaceProfiler.ViewModels
         {
             RootNodes.Clear();
             folderScanTokenSource = new CancellationTokenSource();
-            var folderItem = new FolderItem(rootFolder, rootFolder);
+            var folderItem = new FolderItem(rootFolder);
             RootNodes.Add(folderItem);
             OnPropertyChanged(nameof(RootNodes));
             OnPropertyChanged(nameof(RootPath));
-            UpdateSearchInfo(rootFolder, folderItem);
             StartListeningForChanges();
             CollectNestedItems(folderItem, folderScanTokenSource.Token);
             ProcessingIsActive = true;
         }
         private void StartListeningForChanges()
         {
-            fileSystemWatcher.Start((RootNodes.FirstOrDefault() as FolderItem).Path);
+            fileSystemWatcher.Start((RootNodes.FirstOrDefault() as FolderItem).GetPath());
         }
         private void StartScan()
         {
             scanMonitorTimer.Start();
-        }
-        private void UpdateSearchInfo(string directory, FolderItem folderItem)
-        {
-            lock (fileSystemHash)
-                if (folderItem != null)
-                {
-                    if (!fileSystemHash.ContainsKey(directory))
-                        fileSystemHash.Add(directory, folderItem);
-                    else
-                        fileSystemHash[directory] = folderItem;
-                }
-                else
-                {
-                    if (fileSystemHash.ContainsKey(directory))
-                        fileSystemHash.Remove(directory);
-                }
         }
 
 #if DEBUG

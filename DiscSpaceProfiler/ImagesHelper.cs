@@ -25,9 +25,9 @@ namespace DiscSpaceProfiler
         public static ImageSource GetFolderIcon(FolderItem folderItem)
         {
             if (folderItem.Parent == null)
-                return GetIconInternal(folderItem.Path, ItemType.Folder);
+                return GetIconInternal(folderItem.GetPath(), ItemType.Folder);
             if (folderIcon == null)
-                folderIcon = GetIconInternal(folderItem.Path, ItemType.Folder);
+                folderIcon = GetIconInternal(folderItem.GetPath(), ItemType.Folder);
             return folderIcon;
         }
 

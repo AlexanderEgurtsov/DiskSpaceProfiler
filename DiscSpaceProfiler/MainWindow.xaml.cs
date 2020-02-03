@@ -27,10 +27,12 @@ namespace DiscSpaceProfiler
     /// </summary>
     public partial class MainWindow : Window
     {
-        public MainWindow(MainWindowViewModel viewModel)
+        Timer updateTimer;
+
+        public MainWindow()
         {
             InitializeComponent();
-            ViewModel = viewModel;
+            ViewModel = new MainWindowViewModel();
             DataContext = this;
             updateTimer = new Timer();
             updateTimer.Interval = 2000;
@@ -39,7 +41,7 @@ namespace DiscSpaceProfiler
             StopProfilingCommand = new DevExpress.Mvvm.DelegateCommand(StopProfiling);
             Loaded += ehLoaded;
         }
-        
+
         public ICommand ScanFolderCommand
         {
             get; private set;
@@ -47,6 +49,18 @@ namespace DiscSpaceProfiler
         public ICommand StopProfilingCommand
         {
             get; private set;
+        }
+
+        public MainWindowViewModel ViewModel { get; private set; }
+
+        void ehLoaded(object sender, RoutedEventArgs e)
+        {
+            ScanFolder();
+        }
+
+        void ehUpdateTreeList(object sender, ElapsedEventArgs e)
+        {
+            UpdateTreeListData();
         }
         void ScanFolder()
         {
@@ -69,74 +83,11 @@ namespace DiscSpaceProfiler
             UpdateTreeListData();
             updateTimer.Stop();
         }
-        public MainWindowViewModel ViewModel { get; private set; }
-        Timer updateTimer;
-        
-        void ehUpdateTreeList(object sender, ElapsedEventArgs e)
-        {
-            UpdateTreeListData();
-        }
 
         private void UpdateTreeListData() => DispatcherHelper.Invoke(() =>
         {
             TreeList.BeginDataUpdate();
             TreeList.EndDataUpdate();
-        }); void ehLoaded(object sender, RoutedEventArgs e)
-        {
-            ScanFolder();
-        }
+        });
     }
-    public static class ImagesHelper 
-    {
-        static Dictionary<string, ImageSource> fileIcons = new Dictionary<string, ImageSource>();
-        static ImageSource folderIcon = null;
-        static ImageSource GetIconInternal(string path, ItemType itemType)
-        {
-            using (var icon = ShellManager.GetIcon(path, itemType))
-            {
-                return Imaging.CreateBitmapSourceFromHIcon(icon.Handle,
-                    Int32Rect.Empty,
-                    BitmapSizeOptions.FromWidthAndHeight(16, 16));
-            }
-        }
-        public static ImageSource GetFolderIcon(FolderItem folderItem)
-        {
-            if (folderItem.Parent == null)
-                return GetIconInternal(folderItem.Path, ItemType.Folder);
-            if (folderIcon == null)
-                folderIcon = GetIconInternal(folderItem.Path, ItemType.Folder);
-            return folderIcon;
-        }
-
-        public static ImageSource GetFileIcon(string fileName)
-        {
-            var ext = System.IO.Path.GetExtension(fileName);
-            if (!fileIcons.TryGetValue(ext, out var fileIcon))
-            {
-                fileIcon = GetIconInternal(ext, ItemType.File);
-                fileIcons.Add(ext, fileIcon);
-            }
-            return fileIcon;
-        }
-        public static ImageSource GetImage(FileSystemItem item)
-        {
-            if (item == null)
-                return null;
-            if (item.IsFile)
-                return GetFileIcon(item.DisplayName);
-            if (item is FolderItem folderItem)
-                return GetFolderIcon(folderItem);
-            return null;
-        }
-    }
-    public class FileSystemItemImageSelector : TreeListNodeImageSelector
-    {
-        public override ImageSource Select(DevExpress.Xpf.Grid.TreeList.TreeListRowData rowData)
-        {
-            var fileSystemItem = rowData.Row as FileSystemItem;
-            return ImagesHelper.GetImage(fileSystemItem);
-        }
-    }
-    
-
 }

@@ -19,10 +19,7 @@ namespace DiscSpaceProfiler
             var result = Interop.SHGetFileInfo(path, attributes, out fileInfo, size, flags);
 
             if (result == IntPtr.Zero)
-            {
                 return null;
-            }
-
             try
             {
                 return (Icon)Icon.FromHandle(fileInfo.hIcon).Clone();

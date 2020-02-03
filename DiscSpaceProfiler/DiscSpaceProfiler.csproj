@@ -89,6 +89,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="FileSystemItemImageSelector.cs" />
+    <Compile Include="ImagesHelper.cs" />
     <Compile Include="ImagesInterop\ShellManager.cs" />
     <Compile Include="ViewModels\DefaultFileSystemDataProvider.cs" />
     <Compile Include="ViewModels\DefaultFileSystemWatcher.cs" />

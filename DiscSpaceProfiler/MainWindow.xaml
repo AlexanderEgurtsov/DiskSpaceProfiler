@@ -15,7 +15,7 @@
     HorizontalAlignment="Center"
     VerticalAlignment="Center"
     mc:Ignorable="d"
-    Title="Disc Space Profiler">
+    Title="Disc Space Profiler" Icon="{dx:DXImage SvgImages/Dashboards/InsertTreeView.svg}" WindowStartupLocation="CenterScreen">
 
     <Grid>
         <Grid.Resources>

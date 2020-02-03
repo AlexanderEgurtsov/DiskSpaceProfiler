@@ -36,7 +36,6 @@ namespace DiscSpaceProfiler.ViewModels
     {
         void Start(string path);
         void Stop();
-        bool Active { get; }
         event EventHandler<FileSystemChangeEventArgs> Changed;
     }
 }

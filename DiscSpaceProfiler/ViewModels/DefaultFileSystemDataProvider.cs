@@ -71,7 +71,7 @@ namespace DiscSpaceProfiler.ViewModels
                 else
                 if (fileSystemInfo is DirectoryInfo directoryInfo)
                 {
-                    if (!directoryInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                   if (!directoryInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
                         yield return new FolderItem(directoryInfo.FullName, string.Intern(directoryInfo.Name));
                 }
             }

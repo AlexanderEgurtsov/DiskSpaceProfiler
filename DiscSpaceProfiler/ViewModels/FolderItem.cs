@@ -9,6 +9,7 @@ namespace DiscSpaceProfiler.ViewModels
         List<FileItem> files;
         List<FolderItem> folders;
         bool isValid;
+        object childrenLock = new object();
 
         public FolderItem(string path, string displayName) : base(displayName)
         {
@@ -31,7 +32,14 @@ namespace DiscSpaceProfiler.ViewModels
                     }
             }
         }
-        public override bool HasChildren => (files != null && files.Count > 0) || (folders != null && folders.Count > 0);
+        public override bool HasChildren
+        {
+            get
+            {
+                lock (childrenLock)
+                    return (files != null && files.Count > 0) || (folders != null && folders.Count > 0);
+            }
+        }
         public bool IsProcessing { get; set; }
 
         public override bool IsValid
@@ -46,57 +54,66 @@ namespace DiscSpaceProfiler.ViewModels
         public void AddChildren(FileSystemItem childItem)
         {
             childItem.SetParent(this);
-            bool isFirstItem = files == null && folders == null;
-            if (childItem is FileItem fileItem)
+            lock (childrenLock)
             {
-                AddFile(fileItem);
-                UpdateSize(childItem.Size);
+                bool isFirstItem = files == null && folders == null;
+                if (childItem is FileItem fileItem)
+                {
+                    AddFile(fileItem);
+                    UpdateSize(childItem.Size);
+                }
+                else
+                    if (childItem is FolderItem folderItem)
+                {
+                    AddFolder(folderItem);
+                }
+                if (isFirstItem)
+                    OnPropertyChanged(nameof(HasChildren));
             }
-            else
-                if (childItem is FolderItem folderItem)
-            {
-                AddFolder(folderItem);
-            }
-            if (isFirstItem)
-                OnPropertyChanged(nameof(HasChildren));
-
             UpdateIsValid(childItem.IsValid);
             OnPropertyChanged(nameof(Children));
         }
         public void AddChildrenRange(IEnumerable<FileSystemItem> items)
         {
             long sizeDelta = 0;
-            foreach (var item in items)
+            lock (childrenLock)
             {
-                item.SetParent(this);
-                if (item is FileItem fileItem)
+                foreach (var item in items)
                 {
-                    AddFile(fileItem);
-                    sizeDelta += fileItem.Size;
+                    item.SetParent(this);
+                    if (item is FileItem fileItem)
+                    {
+                        AddFile(fileItem);
+                        sizeDelta += fileItem.Size;
+                    }
+                    else if (item is FolderItem folderItem)
+                        AddFolder(folderItem);
                 }
-                else if (item is FolderItem folderItem)
-                    AddFolder(folderItem);
             }
             UpdateSize(sizeDelta);
             UpdateIsValid(true);
+            OnPropertyChanged(nameof(HasChildren));
             OnPropertyChanged(nameof(Children));
         }
         public FileSystemItem FindChildren(string name)
         {
-            if (folders != null)
-                for (int i = 0; i < folders.Count; i++)
-                {
-                    var folder = folders[i];
-                    if (folder.DisplayName == name)
-                        return folder;
-                }
-            if (files != null)
-                for (int i = 0; i < files.Count; i++)
-                {
-                    var file = files[i];
-                    if (file.DisplayName == name)
-                        return file;
-                }
+            lock (childrenLock)
+            {
+                if (folders != null)
+                    for (int i = 0; i < folders.Count; i++)
+                    {
+                        var folder = folders[i];
+                        if (folder.DisplayName == name)
+                            return folder;
+                    }
+                if (files != null)
+                    for (int i = 0; i < files.Count; i++)
+                    {
+                        var file = files[i];
+                        if (file.DisplayName == name)
+                            return file;
+                    }
+            }
             return null;
         }
         public FileSystemItem RemoveChildren(string name)
@@ -104,10 +121,13 @@ namespace DiscSpaceProfiler.ViewModels
             var children = FindChildren(name);
             if (children == null)
                 return null;
-            if (children is FileItem fileItem)
-                files.Remove(fileItem);
-            else if (children is FolderItem folderItem)
-                folders.Remove(folderItem);
+            lock (childrenLock)
+            {
+                if (children is FileItem fileItem)
+                    files.Remove(fileItem);
+                else if (children is FolderItem folderItem)
+                    folders.Remove(folderItem);
+            }
             if (!children.IsValid && IsValid)
                 UpdateIsValid(true);
             UpdateSize(-children.Size);
@@ -162,12 +182,15 @@ namespace DiscSpaceProfiler.ViewModels
         }
         bool FoldersAreValid()
         {
-            if (folders == null)
-                return true;
-            for (int i = 0; i < folders.Count; i++)
+            lock (childrenLock)
             {
-                if (!folders[i].IsValid)
-                    return false;
+                if (folders == null)
+                    return true;
+                for (int i = 0; i < folders.Count; i++)
+                {
+                    if (!folders[i].IsValid)
+                        return false;
+                }
             }
             return true;
         }

@@ -10,8 +10,8 @@
     xmlns:dxmvvm="http://schemas.devexpress.com/winfx/2008/xaml/mvvm"
     xmlns:local="clr-namespace:DiscSpaceProfiler"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    Width="800"
-    Height="450"
+    Width="1024"
+    Height="768"
     HorizontalAlignment="Center"
     VerticalAlignment="Center"
     mc:Ignorable="d"
@@ -43,7 +43,7 @@
             x:Name="TreeList"
             Grid.Row="1"
             ItemsSource="{Binding ViewModel.RootNodes}"
-            ShowBorder="False">
+            ShowBorder="False" SelectionMode="Row">
             <dxg:TreeListControl.View>
                 <dxg:TreeListView
                     AllowChildNodeSourceUpdates="True"
@@ -55,7 +55,7 @@
                     ShowNodeImages="True"
                     ShowTotalSummary="True"
                     ShowVerticalLines="False"
-                    TreeDerivationMode="ChildNodesSelector">
+                    TreeDerivationMode="ChildNodesSelector" TreeLineStyle="Solid" RowDoubleClick="TreeListView_RowDoubleClick">
                     <dxg:TreeListView.NodeImageSelector>
                         <local:FileSystemItemImageSelector />
                     </dxg:TreeListView.NodeImageSelector>
@@ -91,6 +91,10 @@
             <dxg:TreeListColumn
                 FieldName="IsValid"
                 IsChecked="False"
+                MinWidth="100"
+                Width="Auto"
+                AllowEditing="False"
+                AllowSorting="False"
                 IsSmart="True">
                 <dxg:TreeListColumn.HeaderTemplate>
                     <DataTemplate />

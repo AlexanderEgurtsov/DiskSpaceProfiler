@@ -8,8 +8,6 @@ namespace DiscSpaceProfiler.ViewModels
     {
         FileSystemWatcher watcher;
 
-        public bool Active => watcher != null && watcher.EnableRaisingEvents;
-
         public event EventHandler<FileSystemChangeEventArgs> Changed;
 
         void ehChanged(object sender, FileSystemEventArgs e)

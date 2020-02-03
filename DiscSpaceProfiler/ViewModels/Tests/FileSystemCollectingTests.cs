@@ -323,6 +323,41 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                 Delete(rootPath);
             }
         }
+        [Test]
+        [Explicit]
+        public void StressTestCollectingAndWatchingOnRealData()
+        {
+            var tempPath = Path.GetTempPath();
+            var rootPath = Path.Combine(tempPath, nameof(StressTestCollectingAndWatchingOnRealData));
+
+            Delete(rootPath);
+
+            Directory.CreateDirectory(rootPath);
+
+            try
+            {
+                var model = new MainWindowViewModel();
+                bool dataIsCreated = false;
+                Task.Run(() =>
+                {
+                    SetupTest(rootPath, 7, false);
+                    dataIsCreated = true;
+                });
+
+                model.Run(rootPath);
+                while (model.HasChanges || !dataIsCreated || model.IsScanning)
+                {
+
+                }
+
+                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                model.StopProcessing();
+            }
+            finally
+            {
+                Delete(rootPath);
+            }
+        }
     }
 }
 #endif

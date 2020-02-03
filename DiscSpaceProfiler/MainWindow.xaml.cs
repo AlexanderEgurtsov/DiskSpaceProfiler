@@ -89,5 +89,16 @@ namespace DiscSpaceProfiler
             TreeList.BeginDataUpdate();
             TreeList.EndDataUpdate();
         });
+
+        private void TreeListView_RowDoubleClick(object sender, RowDoubleClickEventArgs e)
+        {
+            var node = (sender as TreeListView).GetNodeByRowHandle(e.HitInfo.RowHandle);
+            if (node == null)
+                return;
+            if (node.IsExpanded)
+                (sender as TreeListView).CollapseNode(e.HitInfo.RowHandle);
+            else
+                (sender as TreeListView).ExpandNode(e.HitInfo.RowHandle);
+        }
     }
 }

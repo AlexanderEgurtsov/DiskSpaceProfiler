@@ -36,13 +36,17 @@ namespace DiscSpaceProfiler
             updateTimer.Interval = 2000;
             updateTimer.Elapsed += ehUpdateTreeList;
             ScanFolderCommand = new DevExpress.Mvvm.DelegateCommand(ScanFolder);
+            StopProfilingCommand = new DevExpress.Mvvm.DelegateCommand(StopProfiling);
             Loaded += ehLoaded;
         }
         
         public ICommand ScanFolderCommand
         {
-            get;
-            private set;
+            get; private set;
+        }
+        public ICommand StopProfilingCommand
+        {
+            get; private set;
         }
         void ScanFolder()
         {
@@ -59,17 +63,25 @@ namespace DiscSpaceProfiler
             ViewModel.Run(dialog.SelectedPath);
             updateTimer.Start();
         }
+        void StopProfiling()
+        {
+            ViewModel?.StopProcessing();
+            UpdateTreeListData();
+            updateTimer.Stop();
+        }
         public MainWindowViewModel ViewModel { get; private set; }
         Timer updateTimer;
         
         void ehUpdateTreeList(object sender, ElapsedEventArgs e)
         {
-            DispatcherHelper.Invoke(() => {
-                TreeList.BeginDataUpdate();
-                TreeList.EndDataUpdate();
-            });
+            UpdateTreeListData();
         }
-        void ehLoaded(object sender, RoutedEventArgs e)
+
+        private void UpdateTreeListData() => DispatcherHelper.Invoke(() =>
+        {
+            TreeList.BeginDataUpdate();
+            TreeList.EndDataUpdate();
+        }); void ehLoaded(object sender, RoutedEventArgs e)
         {
             ScanFolder();
         }
@@ -78,7 +90,6 @@ namespace DiscSpaceProfiler
     {
         static Dictionary<string, ImageSource> fileIcons = new Dictionary<string, ImageSource>();
         static ImageSource folderIcon = null;
-        static ImageSource driveIcon = null;
         static ImageSource GetIconInternal(string path, ItemType itemType)
         {
             using (var icon = ShellManager.GetIcon(path, itemType))

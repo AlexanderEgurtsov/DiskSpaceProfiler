@@ -124,14 +124,18 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             try
             {
                 var model = new MainWindowViewModel();
-                var scanCompleted = false;
-                model.ScanCompleted += (s, ea) => { scanCompleted = true; };
+                Assert.AreEqual(string.Empty, model.RootPath);
+                Assert.IsFalse(model.ProcessingIsActive);
                 model.Run(rootPath);
-                while (!scanCompleted)
+                Assert.IsTrue(model.ProcessingIsActive);
+                while (model.IsScanning)
                 {
 
                 }
                 CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                Assert.AreEqual(rootPath, model.RootPath);
+                model.StopProcessing();
+                Assert.IsFalse(model.ProcessingIsActive);
             }
             finally
             {
@@ -149,14 +153,12 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             {
                 var model = new MainWindowViewModel();
                 model.Run(rootPath);
-                System.Threading.Thread.Sleep(300);
                 SetupTest(rootPath, 3, false);
-                System.Threading.Thread.Sleep(300);
-                while (model.HasChanges || model.HasTasksToScan)
+                while (model.HasChanges || model.IsScanning)
                 {
-                    System.Threading.Thread.Sleep(300);
                 }
                 CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                model.StopProcessing();
             }
             finally
             {
@@ -184,13 +186,13 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                 });
                 
                 model.Run(rootPath);
-                System.Threading.Thread.Sleep(300);
-                while (model.HasChanges || !dataIsCreated || model.HasTasksToScan)
+                while (model.HasChanges || !dataIsCreated || model.IsScanning)
                 {
-                    System.Threading.Thread.Sleep(300);
+                    
                 }
                 
                 CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                model.StopProcessing();
             }
             finally
             {
@@ -206,21 +208,18 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             try
             {
                 var model = new MainWindowViewModel();
-                var scanCompleted = false;
-                model.ScanCompleted += (s, ea) => { scanCompleted = true; };
                 model.Run(rootPath);
-                while (!scanCompleted)
+                while (model.IsScanning)
                 {
 
                 }
-                scanCompleted = false;
                 Directory.Move(Path.Combine(rootPath, "Folder0"), Path.Combine(rootPath, "Folder1", "FolderNew"));
                 System.Threading.Thread.Sleep(300);
-                while (model.HasChanges && !scanCompleted)
+                while (model.HasChanges || model.IsScanning)
                 {
-                    System.Threading.Thread.Sleep(300);
                 }
                 CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                model.StopProcessing();
             }
             finally
             {
@@ -236,21 +235,18 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             try
             {
                 var model = new MainWindowViewModel();
-                var scanCompleted = false;
-                model.ScanCompleted += (s, ea) => { scanCompleted = true; };
                 model.Run(rootPath);
-                while (!scanCompleted)
+                while (model.HasChanges || model.IsScanning)
                 {
 
                 }
-                scanCompleted = false;
                 File.Move(Path.Combine(rootPath, @"Folder0\File0.txt"), Path.Combine(rootPath, @"Folder0\NewFile0.txt"));
                 System.Threading.Thread.Sleep(300);
-                while (model.HasChanges && !scanCompleted)
+                while (model.HasChanges || model.IsScanning)
                 {
-                    System.Threading.Thread.Sleep(300);
                 }
                 CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                model.StopProcessing();
             }
             finally
             {
@@ -266,14 +262,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
             try
             {
                 var model = new MainWindowViewModel();
-                var scanCompleted = false;
-                model.ScanCompleted += (s, ea) => { scanCompleted = true; };
                 model.Run(rootPath);
-                while (!scanCompleted)
-                {
-
-                }
-                scanCompleted = false;
                 using (var stream = File.Create(Path.Combine(rootPath, @"Folder0\File0.txt")))
                 {
                     stream.Write(new byte[] { 134, 135 }, 0, 2);
@@ -281,11 +270,11 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                     stream.Close();
                 }
                 System.Threading.Thread.Sleep(300);
-                while (model.HasChanges && !scanCompleted)
+                while (model.HasChanges || model.IsScanning)
                 {
-                    System.Threading.Thread.Sleep(300);
                 }
                 CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                model.StopProcessing();
             }
             finally
             {
@@ -313,10 +302,9 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                 });
 
                 model.Run(rootPath);
-                System.Threading.Thread.Sleep(300);
-                while (model.HasChanges || !dataIsCreated || model.HasTasksToScan)
+                
+                while (model.HasChanges || !dataIsCreated || model.IsScanning)
                 {
-                    System.Threading.Thread.Sleep(300);
                 }
 
                 CheckFolders(model.RootNodes.First(), rootPath, model, out _);
@@ -324,11 +312,11 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                 {
                     Delete(item);
                 }
-                while (model.HasChanges || !dataIsCreated || model.HasTasksToScan)
+                while (model.HasChanges || !dataIsCreated || model.IsScanning)
                 {
-                    System.Threading.Thread.Sleep(300);
                 }
                 CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                model.StopProcessing();
             }
             finally
             {

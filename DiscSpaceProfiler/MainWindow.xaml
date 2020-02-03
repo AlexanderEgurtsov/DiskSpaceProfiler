@@ -25,12 +25,19 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <dxb:ToolBarControl Grid.Row="0">
+        <dxb:ToolBarControl
+            Grid.Row="0"
+            AllowCustomizationMenu="False"
+            AllowQuickCustomization="False">
             <dxb:BarButtonItem
                 Command="{Binding ScanFolderCommand}"
                 Content="Profile folder..."
                 Glyph="{dx:DXImage SvgImages/RichEdit/Open.svg}" />
-            <dxb:BarButtonItem Content="Abort scan and watching" Glyph="{dx:DXImage SvgImages/Icon Builder/Actions_RemoveCircled.svg}" />
+            <dxb:BarButtonItem
+                Command="{Binding StopProfilingCommand}"
+                Content="Stop profiling"
+                Glyph="{dx:DXImage SvgImages/Icon Builder/Actions_RemoveCircled.svg}"
+                IsEnabled="{Binding ViewModel.ProcessingIsActive}" />
         </dxb:ToolBarControl>
         <dxg:TreeListControl
             x:Name="TreeList"
@@ -105,5 +112,4 @@
                 Visible="False" />
         </dxg:TreeListControl>
     </Grid>
-
 </Window>

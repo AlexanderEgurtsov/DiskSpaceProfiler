@@ -7,11 +7,13 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 
 namespace DiscSpaceProfiler.ViewModels
 {
+    using Timer = System.Timers.Timer;
     public class MainWindowViewModel : INotifyPropertyChanged
     {
         const int INT_MaxTaskCount = 150;
@@ -24,8 +26,11 @@ namespace DiscSpaceProfiler.ViewModels
         Timer scanMonitorTimer;
         IFileSystemWatcher fileSystemWatcher;
         Task processChangesTask;
-        bool scanCompleted;
-        public string RootPath {
+        CancellationTokenSource folderScanTokenSource;
+        CancellationTokenSource processChangesTaskCancellation;
+        bool processingIsActive;
+        public string RootPath 
+        {
             get
             {
                 if (RootNodes == null || RootNodes.Count == 0)
@@ -33,7 +38,20 @@ namespace DiscSpaceProfiler.ViewModels
                 return RootNodes[0].DisplayName;
             }
         }
-        System.Threading.CancellationTokenSource processChangesTaskCancellation;
+        public bool ProcessingIsActive 
+        {
+            get 
+            {
+                return processingIsActive;
+            }
+            set
+            {
+                if (processingIsActive == value)
+                    return;
+                processingIsActive = value;
+                OnPropertyChanged(nameof(processingIsActive));
+            }
+        }
 
         public MainWindowViewModel()
         {
@@ -44,10 +62,11 @@ namespace DiscSpaceProfiler.ViewModels
             scanMonitorTimer.Elapsed += ehScanMonitorTimerElapsed;
             fileSystemWatcher.Changed += ehChanged;
             RootNodes = new ObservableCollection<FolderItem>();
+            folderScanTokenSource = new CancellationTokenSource();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
-        public event EventHandler ScanCompleted;
+        
 
         public ObservableCollection<FolderItem> RootNodes { get; private set; }
 
@@ -56,23 +75,32 @@ namespace DiscSpaceProfiler.ViewModels
             return string.Intern(Path.GetFileName(path));
         }
 
-        void StopWatcher()
+        public void StopProcessing()
         {
             fileSystemWatcher.Stop();
             if (processChangesTask != null && !processChangesTask.IsCompleted && !processChangesTask.IsCanceled)
-                processChangesTaskCancellation?.Cancel();
-        }
+                folderScanTokenSource?.Cancel();
 
+            scanMonitorTimer.Stop();
+            if (!folderScanTokenSource.IsCancellationRequested)
+                folderScanTokenSource.Cancel();
+            activeTasks.Clear();
+            while (foldersToScan.TryDequeue(out _))
+            {
+                
+            }
+            ProcessingIsActive = false;
+
+        }
         public void Run(string rootFolder)
         {
-            StopWatcher();
+            StopProcessing();
             RunForFolder(rootFolder);
             StartScan();
         }
 
         private void StartScan()
         {
-            scanCompleted = false;
             scanMonitorTimer.Start();
         }
 
@@ -82,10 +110,12 @@ namespace DiscSpaceProfiler.ViewModels
             foldersToScan.Enqueue(item);
         }
 
-        IEnumerable<FileSystemItem> ProcessContent(IEnumerable<FileSystemItem> directoryContent)
+        IEnumerable<FileSystemItem> ProcessContent(IEnumerable<FileSystemItem> directoryContent, CancellationToken cancellationToken)
         {
             foreach (FileSystemItem fileSystemItem in directoryContent)
             {
+                if (cancellationToken.IsCancellationRequested)
+                    yield break;
                 if (fileSystemItem is FolderItem folderItem)
                 {
                     yield return fileSystemItem;
@@ -96,15 +126,19 @@ namespace DiscSpaceProfiler.ViewModels
                     yield return fileSystemItem;
             }
         }
-        void CollectNestedItems(FolderItem parentItem)
+        void CollectNestedItems(FolderItem parentItem, CancellationToken cancellationToken)
         {
             if (parentItem == null || parentItem.IsFile)
+                return;
+            if (cancellationToken.IsCancellationRequested)
                 return;
             (parentItem as FolderItem).IsProcessing = true;
             var parentPath = parentItem.Path;
             if (string.IsNullOrEmpty(parentPath))
                 return;
-            parentItem.AddChildrenRange(ProcessContent(fileSystemProvider.GetDirectoryContent(parentPath)));
+            parentItem.AddChildrenRange(ProcessContent(fileSystemProvider.GetDirectoryContent(parentPath), cancellationToken));
+            if (cancellationToken.IsCancellationRequested)
+                return;
             parentItem.IsProcessing = false;
             if (!parentItem.HasChildren)
             {
@@ -125,23 +159,33 @@ namespace DiscSpaceProfiler.ViewModels
         {
             if (foldersToScan.Count == 0)
             {
-                scanMonitorTimer.Stop();
-                OnScanCompleted();
                 return;
             }
-            if (activeTasks.Count == 0)
+            lock (activeTasks)
             {
-                for (int i = 0; i < maxTasksCount; i++)
+                if (activeTasks.Count == 0)
+                    for (int i = 0; i < maxTasksCount; i++)
+                        activeTasks.Add(Task.Run(() => FolderScanTask(folderScanTokenSource.Token)));
+                for (int i = 0; i < activeTasks.Count; i++)
                 {
-                    activeTasks.Add(Task.Run(FolderScanTask));
+                    Task task = activeTasks[i];
+                    if (task.IsCompleted || task.IsCanceled)
+                        activeTasks[i] = Task.Run(() => FolderScanTask(folderScanTokenSource.Token));
                 }
             }
-            for (int i = 0; i < activeTasks.Count; i++)
+        }
+        bool HasActiveTasks()
+        {
+            lock (activeTasks)
             {
-                Task task = activeTasks[i];
-                if (task.IsCompleted || task.IsCanceled)
-                    activeTasks[i] = Task.Run(FolderScanTask);
+                for (int i = 0; i < activeTasks.Count; i++)
+                {
+                    Task task = activeTasks[i];
+                    if (!(task.IsCompleted || task.IsCanceled))
+                        return true;
+                }
             }
+            return false;
         }
 
         public FileSystemItem FindItem(string parentPath)
@@ -152,22 +196,20 @@ namespace DiscSpaceProfiler.ViewModels
             return null;
         }
 
-        void FolderScanTask()
+        void FolderScanTask(CancellationToken cancellationToken)
         {
+            if (cancellationToken.IsCancellationRequested)
+                return;
             if (!foldersToScan.TryDequeue(out var currentItem))
                 return;
-            CollectNestedItems(currentItem);
+            CollectNestedItems(currentItem, cancellationToken);
         }
 
         void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
-        void OnScanCompleted()
-        {
-            scanCompleted = true;
-            ScanCompleted?.Invoke(this, EventArgs.Empty);
-        }
+        
         void ProcessChange(FolderItem parentItem, FileSystemChangeEventArgs change)
         {
             if (change == null)
@@ -253,20 +295,21 @@ namespace DiscSpaceProfiler.ViewModels
                 parentItem.AddChildren(folderItem);
                 UpdateSearchInfo(path, folderItem);
                 AddFolderToScan(folderItem);
-                StartScan();
             }
         }
 
         void RunForFolder(string rootFolder)
         {
             RootNodes.Clear();
+            folderScanTokenSource = new CancellationTokenSource();
             var folderItem = new FolderItem(rootFolder, rootFolder);
             RootNodes.Add(folderItem);
             OnPropertyChanged(nameof(RootNodes));
             OnPropertyChanged(nameof(RootPath));
             UpdateSearchInfo(rootFolder, folderItem);
             StartListeningForChanges();
-            CollectNestedItems(folderItem);
+            CollectNestedItems(folderItem, folderScanTokenSource.Token);
+            ProcessingIsActive = true;
         }
 
         private void StartListeningForChanges()
@@ -293,7 +336,7 @@ namespace DiscSpaceProfiler.ViewModels
 
 #if DEBUG
         internal bool HasChanges => changedEvents.Count > 0;
-        internal bool HasTasksToScan => foldersToScan.Count > 0 && scanMonitorTimer.Enabled;
+        internal bool IsScanning => foldersToScan.Count > 0 || HasActiveTasks();
 #endif        
     }
 }

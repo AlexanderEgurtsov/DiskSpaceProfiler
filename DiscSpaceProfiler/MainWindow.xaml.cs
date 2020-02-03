@@ -100,5 +100,17 @@ namespace DiscSpaceProfiler
             else
                 (sender as TreeListView).ExpandNode(e.HitInfo.RowHandle);
         }
+
+        private void OpenInSolutionExplorer_ItemClick(object sender, DevExpress.Xpf.Bars.ItemClickEventArgs e)
+        {
+            var info = TreeView?.DataControlMenu?.MenuInfo as GridCellMenuInfo;
+            if (info == null)
+                return;
+            var fileSystemItem = info.OriginalRow as FileSystemItem;
+            if (fileSystemItem == null)
+                return;
+            System.Diagnostics.Process.Start("explorer.exe", $"/select, \"{fileSystemItem.GetPath()}\"");
+
+        }
     }
 }

@@ -19,16 +19,19 @@ namespace DiscSpaceProfiler.ViewModels
         {
             get
             {
-                if (folders != null)
-                    foreach (FolderItem folderItem in folders)
-                    {
-                        yield return folderItem;
-                    }
-                if (files != null)
-                    foreach (FileItem fileItem in files)
-                    {
-                        yield return fileItem;
-                    }
+                lock (childrenLock)
+                {
+                    if (folders != null)
+                        foreach (FolderItem folderItem in folders)
+                        {
+                            yield return folderItem;
+                        }
+                    if (files != null)
+                        foreach (FileItem fileItem in files)
+                        {
+                            yield return fileItem;
+                        }
+                }
             }
         }
         public override bool HasChildren

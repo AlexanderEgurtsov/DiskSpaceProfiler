@@ -14,7 +14,7 @@ namespace DiscSpaceProfiler.ViewModels
 
     public class MainWindowViewModel : INotifyPropertyChanged
     {
-        const int INT_MaxTaskCount = 5;
+        const int INT_MaxTaskCount = 2;
         List<Task> activeTasks = new List<Task>();
         ConcurrentQueue<FileSystemChangeEventArgs> changedEvents = new ConcurrentQueue<FileSystemChangeEventArgs>();
         IFileSystemDataProvider fileSystemProvider;
@@ -23,7 +23,7 @@ namespace DiscSpaceProfiler.ViewModels
         ConcurrentQueue<FolderItem> foldersToScan = new ConcurrentQueue<FolderItem>();
         int maxTasksCount;
         Task processChangesTask;
-        CancellationTokenSource processChangesTaskCancellation;
+        CancellationTokenSource processChangesTokenSource;
         bool processingIsActive;
         Timer scanMonitorTimer;
 
@@ -70,7 +70,7 @@ namespace DiscSpaceProfiler.ViewModels
         {
             return string.Intern(Path.GetFileName(path));
         }
-
+        
         public FileSystemItem FindItem(string parentPath)
         {
             if (!parentPath.StartsWith(RootPath))
@@ -119,6 +119,10 @@ namespace DiscSpaceProfiler.ViewModels
             {
 
             }
+            while (changedEvents.TryDequeue(out _))
+            {
+
+            }
             ProcessingIsActive = false;
 
         }
@@ -151,8 +155,8 @@ namespace DiscSpaceProfiler.ViewModels
             changedEvents.Enqueue(e);
             if (processChangesTask == null || processChangesTask.IsCompleted || processChangesTask.IsCanceled)
             {
-                processChangesTaskCancellation = new System.Threading.CancellationTokenSource();
-                processChangesTask = Task.Run(ProcessChangesTask, processChangesTaskCancellation.Token);
+                processChangesTokenSource = new System.Threading.CancellationTokenSource();
+                processChangesTask = Task.Run(ProcessChangesTask, processChangesTokenSource.Token);
             }
         }
         void ehScanMonitorTimerElapsed(object sender, ElapsedEventArgs e)
@@ -242,7 +246,7 @@ namespace DiscSpaceProfiler.ViewModels
                 return;
             while (parentItem.IsProcessing)
             {
-                if (processChangesTaskCancellation != null && processChangesTaskCancellation.IsCancellationRequested)
+                if (processChangesTokenSource != null && processChangesTokenSource.IsCancellationRequested)
                     return;
             }
             ProcessChange(parentItem, change);

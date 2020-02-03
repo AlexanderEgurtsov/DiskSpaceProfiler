@@ -15,7 +15,9 @@
     HorizontalAlignment="Center"
     VerticalAlignment="Center"
     mc:Ignorable="d"
-    Title="Disc Space Profiler" Icon="{dx:DXImage SvgImages/Dashboards/InsertTreeView.svg}" WindowStartupLocation="CenterScreen">
+    Icon="{dx:DXImage SvgImages/Dashboards/InsertTreeView.svg}"
+    Title="Disc Space Profiler"
+    WindowStartupLocation="CenterScreen">
 
     <Grid>
         <Grid.Resources>
@@ -43,22 +45,32 @@
             x:Name="TreeList"
             Grid.Row="1"
             ItemsSource="{Binding ViewModel.RootNodes}"
-            ShowBorder="False" SelectionMode="Row">
+            SelectionMode="Row"
+            ShowBorder="False">
             <dxg:TreeListControl.View>
                 <dxg:TreeListView
+                    x:Name="TreeView"
                     AllowChildNodeSourceUpdates="True"
                     AllowEditing="False"
                     ChildNodesPath="Children"
                     HasChildNodesPath="HasChildren"
+                    RowDoubleClick="TreeListView_RowDoubleClick"
                     ShowHorizontalLines="False"
                     ShowIndicator="False"
                     ShowNodeImages="True"
                     ShowTotalSummary="True"
                     ShowVerticalLines="False"
-                    TreeDerivationMode="ChildNodesSelector" TreeLineStyle="Solid" RowDoubleClick="TreeListView_RowDoubleClick">
+                    TreeDerivationMode="ChildNodesSelector">
                     <dxg:TreeListView.NodeImageSelector>
                         <local:FileSystemItemImageSelector />
                     </dxg:TreeListView.NodeImageSelector>
+                    <dxg:TreeListView.RowCellMenuCustomizations>
+                        <dxb:BarButtonItem
+                            Content="Open in Explorer"
+                            Glyph="{dx:DXImage SvgImages/Reports/LoadChart.svg}"
+                            ItemClick="OpenInSolutionExplorer_ItemClick"
+                            Name="OpenInExplorer" />
+                    </dxg:TreeListView.RowCellMenuCustomizations>
                 </dxg:TreeListView>
             </dxg:TreeListControl.View>
             <dxg:TreeListColumn
@@ -89,12 +101,12 @@
                 </dxg:TreeListColumn.EditSettings>
             </dxg:TreeListColumn>
             <dxg:TreeListColumn
-                FieldName="IsValid"
-                IsChecked="False"
-                MinWidth="100"
                 Width="Auto"
+                MinWidth="100"
                 AllowEditing="False"
                 AllowSorting="False"
+                FieldName="IsValid"
+                IsChecked="False"
                 IsSmart="True">
                 <dxg:TreeListColumn.HeaderTemplate>
                     <DataTemplate />
@@ -116,4 +128,5 @@
                 Visible="False" />
         </dxg:TreeListControl>
     </Grid>
+
 </Window>

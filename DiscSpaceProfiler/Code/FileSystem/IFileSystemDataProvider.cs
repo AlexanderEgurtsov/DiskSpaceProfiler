@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace DiscSpaceProfiler.ViewModels
+namespace DiscSpaceProfiler.Code.FileSystem
 {
     public interface IFileSystemDataProvider
     {

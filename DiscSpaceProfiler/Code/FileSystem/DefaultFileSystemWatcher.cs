@@ -1,8 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using DiscSpaceProfiler.ViewModels;
 
-namespace DiscSpaceProfiler.ViewModels
+namespace DiscSpaceProfiler.Code.FileSystem
 {
     public class DefaultFileSystemWatcher : IFileSystemWatcher
     {

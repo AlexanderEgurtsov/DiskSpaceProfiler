@@ -3,7 +3,7 @@ using NUnit.Framework;
 using System;
 using System.Linq;
 
-namespace DiscSpaceProfiler.ViewModels.Tests
+namespace DiscSpaceProfiler.Code.FileSystem.Tests
 {
     [TestFixture]
     public class FileSystemItemTests

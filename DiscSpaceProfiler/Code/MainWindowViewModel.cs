@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using DiscSpaceProfiler.Code.FileSystem;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -70,7 +71,7 @@ namespace DiscSpaceProfiler.ViewModels
         {
             return string.Intern(Path.GetFileName(path));
         }
-        
+
         public FileSystemItem FindItem(string parentPath)
         {
             if (!parentPath.StartsWith(RootPath))

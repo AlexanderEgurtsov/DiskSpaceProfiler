@@ -1,10 +1,8 @@
 ﻿using DevExpress.Xpf.Grid;
-using DiscSpaceProfiler.ViewModels;
-using System;
-using System.Linq;
+using DiscSpaceProfiler.Code.FileSystem;
 using System.Windows.Media;
 
-namespace DiscSpaceProfiler
+namespace DiscSpaceProfiler.UI
 {
     public class FileSystemItemImageSelector : TreeListNodeImageSelector
     {

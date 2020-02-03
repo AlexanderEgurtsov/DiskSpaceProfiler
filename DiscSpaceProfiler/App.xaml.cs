@@ -1,4 +1,4 @@
-﻿using DiscSpaceProfiler.ViewModels;
+﻿using DiscSpaceProfiler.UI;
 using System;
 using System.Collections.Generic;
 using System.Configuration;

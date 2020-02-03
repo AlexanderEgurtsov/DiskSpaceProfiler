@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace DiscSpaceProfiler.ViewModels
+namespace DiscSpaceProfiler.Code.FileSystem
 {
     public class DefaultFileSystemDataProvider : IFileSystemDataProvider
     {

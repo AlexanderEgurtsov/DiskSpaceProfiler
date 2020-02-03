@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace DiscSpaceProfiler.ViewModels
+namespace DiscSpaceProfiler.Code.FileSystem
 {
     public enum FileSystemChangeType
     {

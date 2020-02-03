@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace DiscSpaceProfiler.ViewModels
+namespace DiscSpaceProfiler.Code.FileSystem
 {
     public class FolderItem : FileSystemItem
     {
@@ -156,6 +156,8 @@ namespace DiscSpaceProfiler.ViewModels
             if (oldIsValid != IsValid)
             {
                 OnPropertyChanged(nameof(IsValid));
+                if (IsValid)
+                    OnPropertyChanged(nameof(Size));
                 (Parent as FolderItem)?.UpdateIsValid(this.IsValid);
             }
         }

@@ -99,21 +99,22 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="FileSystemItemImageSelector.cs" />
-    <Compile Include="ImagesHelper.cs" />
-    <Compile Include="ImagesInterop\ShellManager.cs" />
-    <Compile Include="ViewModels\DefaultFileSystemDataProvider.cs" />
-    <Compile Include="ViewModels\DefaultFileSystemWatcher.cs" />
-    <Compile Include="ViewModels\DispatcherHelper.cs" />
-    <Compile Include="ViewModels\FileItem.cs" />
-    <Compile Include="ViewModels\FileSystemItem.cs" />
-    <Compile Include="ViewModels\FolderItem.cs" />
-    <Compile Include="ViewModels\IFileSystemDataProvider.cs" />
-    <Compile Include="ViewModels\IFileSystemWatcher.cs" />
-    <Compile Include="ViewModels\MainWindowViewModel.cs" />
-    <Compile Include="ViewModels\Tests\FileSystemCollectingTests.cs" />
-    <Compile Include="ViewModels\Tests\FileSystemItemTests.cs" />
-    <Page Include="MainWindow.xaml">
+    <Compile Include="UI\FileSystemItemImageSelector.cs" />
+    <Compile Include="UI\ImagesHelper.cs" />
+    <Compile Include="UI\Interop\ShellManager.cs" />
+    <Compile Include="Code\FileSystem\DefaultFileSystemDataProvider.cs" />
+    <Compile Include="Code\FileSystem\DefaultFileSystemWatcher.cs" />
+    <Compile Include="Code\DispatcherHelper.cs" />
+    <Compile Include="Code\FileSystem\FileItem.cs" />
+    <Compile Include="Code\FileSystem\FileSystemItem.cs" />
+    <Compile Include="Code\FileSystem\FolderItem.cs" />
+    <Compile Include="Code\FileSystem\IFileSystemDataProvider.cs" />
+    <Compile Include="Code\FileSystem\IFileSystemWatcher.cs" />
+    <Compile Include="Code\MainWindowViewModel.cs" />
+    <Compile Include="Code\FileSystem\Tests\FileSystemCollectingTests.cs" />
+    <Compile Include="Code\FileSystem\Tests\FileSystemItemTests.cs" />
+    <Compile Include="UI\Interop\WpfExtensions.cs" />
+    <Page Include="UI\MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -121,7 +122,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="MainWindow.xaml.cs">
+    <Compile Include="UI\MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>

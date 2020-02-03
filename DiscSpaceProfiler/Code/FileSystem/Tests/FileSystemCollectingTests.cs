@@ -3,8 +3,9 @@ using NUnit.Framework;
 using System.Linq;
 using System.Threading.Tasks;
 using System.IO;
+using DiscSpaceProfiler.ViewModels;
 
-namespace DiscSpaceProfiler.ViewModels.Tests
+namespace DiscSpaceProfiler.Code.FileSystem.Tests
 {
     [TestFixture]
     public class FileSystemCollectingTests
@@ -85,8 +86,6 @@ namespace DiscSpaceProfiler.ViewModels.Tests
                 Delete(rootPath);
             GenerateFolder(rootPath, "", maxCount);
         }
-
-
         void Delete(string rootPath)
         {
             try
@@ -323,7 +322,7 @@ namespace DiscSpaceProfiler.ViewModels.Tests
         public void StressTestCollectingAndWatchingOnRealData()
         {
             var tempPath = Path.GetTempPath();
-            var rootPath = Path.Combine(tempPath, nameof(TestCollectingAndWatchingOnRealData));
+            var rootPath = Path.Combine(tempPath, nameof(StressTestCollectingAndWatchingOnRealData));
 
             Delete(rootPath);
 

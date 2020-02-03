@@ -1,5 +1,5 @@
 ﻿<Window
-    x:Class="DiscSpaceProfiler.MainWindow"
+    x:Class="DiscSpaceProfiler.UI.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -8,7 +8,7 @@
     xmlns:dxg="http://schemas.devexpress.com/winfx/2008/xaml/grid"
     xmlns:dxg1="http://schemas.devexpress.com/winfx/2008/xaml/editors"
     xmlns:dxmvvm="http://schemas.devexpress.com/winfx/2008/xaml/mvvm"
-    xmlns:local="clr-namespace:DiscSpaceProfiler"
+    xmlns:local1="clr-namespace:DiscSpaceProfiler.UI"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Width="1024"
     Height="768"
@@ -58,11 +58,11 @@
                     ShowHorizontalLines="False"
                     ShowIndicator="False"
                     ShowNodeImages="True"
-                    ShowTotalSummary="True"
                     ShowVerticalLines="False"
+                    ShowTotalSummary="False"
                     TreeDerivationMode="ChildNodesSelector">
                     <dxg:TreeListView.NodeImageSelector>
-                        <local:FileSystemItemImageSelector />
+                        <local1:FileSystemItemImageSelector />
                     </dxg:TreeListView.NodeImageSelector>
                     <dxg:TreeListView.RowCellMenuCustomizations>
                         <dxb:BarButtonItem

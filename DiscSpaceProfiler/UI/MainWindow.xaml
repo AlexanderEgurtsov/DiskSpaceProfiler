@@ -44,23 +44,21 @@
         <dxg:TreeListControl
             x:Name="TreeList"
             Grid.Row="1"
-            ItemsSource="{Binding ViewModel.RootNodes}"
+            
             SelectionMode="Row"
             ShowBorder="False">
             <dxg:TreeListControl.View>
                 <dxg:TreeListView
                     x:Name="TreeView"
-                    AllowChildNodeSourceUpdates="True"
                     AllowEditing="False"
-                    ChildNodesPath="Children"
-                    HasChildNodesPath="HasChildren"
+                    AllowSorting="True"
                     RowDoubleClick="TreeListView_RowDoubleClick"
                     ShowHorizontalLines="False"
                     ShowIndicator="False"
                     ShowNodeImages="True"
                     ShowVerticalLines="False"
-                    ShowTotalSummary="False"
-                    TreeDerivationMode="ChildNodesSelector">
+                    ShowTotalSummary="False" NodeExpanding="TreeView_NodeExpanding"
+                    >
                     <dxg:TreeListView.NodeImageSelector>
                         <local1:FileSystemItemImageSelector />
                     </dxg:TreeListView.NodeImageSelector>
@@ -81,7 +79,9 @@
                 BestFitMode="Smart"
                 FieldName="DisplayName"
                 IsSmart="True"
-                SortIndex="2">
+                
+                Binding="{Binding RowData.Row.DisplayName}"
+                >
                 Name
             </dxg:TreeListColumn>
             <dxg:TreeListColumn
@@ -90,9 +90,11 @@
                 AllowEditing="False"
                 AllowSorting="False"
                 FieldName="Size"
+                Binding="{Binding RowData.Row.Size}"
                 IsSmart="True"
                 SortIndex="1"
-                SortOrder="Descending">
+                SortOrder="Descending"
+                >
                 <dxg:TreeListColumn.EditSettings>
                     <dxg1:TextEditSettings
                         Mask="N0"

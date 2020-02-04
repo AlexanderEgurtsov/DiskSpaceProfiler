@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Windows.Threading;
 
 namespace DiscSpaceProfiler.ViewModels
 {
@@ -8,10 +9,15 @@ namespace DiscSpaceProfiler.ViewModels
         [ExcludeFromCodeCoverage]
         public static void Invoke(Action action)
         {
-            if (App.Current == null || App.Current.Dispatcher == null)
+            Invoke(App.Current?.Dispatcher, action);
+        }
+        [ExcludeFromCodeCoverage]
+        public static void Invoke(Dispatcher dispatcher, Action action)
+        {
+            if (dispatcher == null)
                 action();
             else
-                App.Current.Dispatcher.Invoke(action);
+                dispatcher.Invoke(action);
         }
     }
 }

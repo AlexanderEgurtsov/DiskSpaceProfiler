@@ -114,6 +114,7 @@
     <Compile Include="Code\FileSystem\Tests\FileSystemCollectingTests.cs" />
     <Compile Include="Code\FileSystem\Tests\FileSystemItemTests.cs" />
     <Compile Include="UI\Interop\WpfExtensions.cs" />
+    <Compile Include="UI\Tests\UITests.cs" />
     <Page Include="UI\MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

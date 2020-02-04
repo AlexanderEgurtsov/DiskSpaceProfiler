@@ -10,7 +10,7 @@ namespace DiscSpaceProfiler.Code.FileSystem.Tests
     [TestFixture]
     public class FileSystemCollectingTests
     {
-        void CreateFiles(string newPath, int maxItemsCount)
+        public static void CreateFiles(string newPath, int maxItemsCount)
         {
             for (int i = 0; i < maxItemsCount; i++)
             {
@@ -23,7 +23,7 @@ namespace DiscSpaceProfiler.Code.FileSystem.Tests
                 
             }
         }
-        void GenerateFolder(string rootPath, string prefix, int maxItemsCount) 
+        public static void GenerateFolder(string rootPath, string prefix, int maxItemsCount) 
         {
             if (maxItemsCount <= 0)
                 return;
@@ -80,13 +80,13 @@ namespace DiscSpaceProfiler.Code.FileSystem.Tests
             Assert.AreEqual(folderSize, rootNode.Size, rootPath);
         }
 
-        void SetupTest(string rootPath, int maxCount, bool removeRoot = true)
+        public static void SetupTest(string rootPath, int maxCount, bool removeRoot = true)
         {
             if (removeRoot && Directory.Exists(rootPath))
                 Delete(rootPath);
             GenerateFolder(rootPath, "", maxCount);
         }
-        void Delete(string rootPath)
+        public static void Delete(string rootPath)
         {
             try
             {
@@ -126,7 +126,7 @@ namespace DiscSpaceProfiler.Code.FileSystem.Tests
                 {
 
                 }
-                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                CheckFolders(model.RootNode, rootPath, model, out _);
                 Assert.AreEqual(rootPath, model.RootPath);
                 model.StopProcessing();
                 Assert.IsFalse(model.ProcessingIsActive);
@@ -151,7 +151,7 @@ namespace DiscSpaceProfiler.Code.FileSystem.Tests
                 while (model.HasChanges || model.IsScanning)
                 {
                 }
-                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                CheckFolders(model.RootNode, rootPath, model, out _);
                 model.StopProcessing();
             }
             finally
@@ -185,7 +185,7 @@ namespace DiscSpaceProfiler.Code.FileSystem.Tests
                     
                 }
                 
-                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                CheckFolders(model.RootNode, rootPath, model, out _);
                 model.StopProcessing();
             }
             finally
@@ -212,7 +212,7 @@ namespace DiscSpaceProfiler.Code.FileSystem.Tests
                 while (model.HasChanges || model.IsScanning)
                 {
                 }
-                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                CheckFolders(model.RootNode, rootPath, model, out _);
                 model.StopProcessing();
             }
             finally
@@ -239,7 +239,7 @@ namespace DiscSpaceProfiler.Code.FileSystem.Tests
                 while (model.HasChanges || model.IsScanning)
                 {
                 }
-                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                CheckFolders(model.RootNode, rootPath, model, out _);
                 model.StopProcessing();
             }
             finally
@@ -267,7 +267,7 @@ namespace DiscSpaceProfiler.Code.FileSystem.Tests
                 while (model.HasChanges || model.IsScanning)
                 {
                 }
-                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                CheckFolders(model.RootNode, rootPath, model, out _);
                 model.StopProcessing();
             }
             finally
@@ -301,7 +301,7 @@ namespace DiscSpaceProfiler.Code.FileSystem.Tests
                 {
                 }
 
-                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                CheckFolders(model.RootNode, rootPath, model, out _);
                 foreach (string item in Directory.GetDirectories(rootPath))
                 {
                     Delete(item);
@@ -309,7 +309,7 @@ namespace DiscSpaceProfiler.Code.FileSystem.Tests
                 while (model.HasChanges || !dataIsCreated || model.IsScanning)
                 {
                 }
-                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                CheckFolders(model.RootNode, rootPath, model, out _);
                 model.StopProcessing();
             }
             finally
@@ -344,7 +344,7 @@ namespace DiscSpaceProfiler.Code.FileSystem.Tests
 
                 }
 
-                CheckFolders(model.RootNodes.First(), rootPath, model, out _);
+                CheckFolders(model.RootNode, rootPath, model, out _);
                 model.StopProcessing();
             }
             finally

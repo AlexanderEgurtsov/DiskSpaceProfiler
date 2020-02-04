@@ -56,22 +56,19 @@ namespace DiscSpaceProfiler.Code.FileSystem
             childItem.SetParent(this);
             lock (childrenLock)
             {
-                bool isFirstItem = files == null && folders == null;
                 if (childItem is FileItem fileItem)
                 {
                     AddFile(fileItem);
                     UpdateSize(childItem.Size);
+                    OnPropertyChanged(nameof(Size));
                 }
                 else
                     if (childItem is FolderItem folderItem)
                 {
                     AddFolder(folderItem);
                 }
-                if (isFirstItem)
-                    OnPropertyChanged(nameof(HasChildren));
             }
             UpdateIsValid(childItem.IsValid);
-            OnPropertyChanged(nameof(Children));
         }
         public void AddChildrenRange(IEnumerable<FileSystemItem> items)
         {
@@ -92,8 +89,6 @@ namespace DiscSpaceProfiler.Code.FileSystem
             }
             UpdateSize(sizeDelta);
             UpdateIsValid(true);
-            OnPropertyChanged(nameof(HasChildren));
-            OnPropertyChanged(nameof(Children));
         }
         public FileSystemItem FindChildren(string name)
         {
@@ -116,11 +111,11 @@ namespace DiscSpaceProfiler.Code.FileSystem
             }
             return null;
         }
-        public void RemoveChildren(string name)
+        public FileSystemItem RemoveChildren(string name)
         {
             var children = FindChildren(name);
             if (children == null)
-                return;
+                return null;
             lock (childrenLock)
             {
                 if (children is FileItem fileItem)
@@ -131,7 +126,8 @@ namespace DiscSpaceProfiler.Code.FileSystem
             if (!children.IsValid && IsValid)
                 UpdateIsValid(true);
             UpdateSize(-children.Size);
-            OnPropertyChanged(nameof(Children));
+            OnPropertyChanged(nameof(Size));
+            return children;
         }
         public void RenameChildren(string oldName, string oldPath, string name, string path)
         {
@@ -140,6 +136,7 @@ namespace DiscSpaceProfiler.Code.FileSystem
                 return;
             children.SetDisplayName(name);
         }
+
         public void UpdateIsValid(bool childrenIsValid)
         {
             bool oldIsValid = false;
@@ -157,7 +154,9 @@ namespace DiscSpaceProfiler.Code.FileSystem
             {
                 OnPropertyChanged(nameof(IsValid));
                 if (IsValid)
+                {
                     OnPropertyChanged(nameof(Size));
+                }
                 (Parent as FolderItem)?.UpdateIsValid(this.IsValid);
             }
         }

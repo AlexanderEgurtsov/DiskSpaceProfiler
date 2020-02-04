@@ -1,4 +1,5 @@
 ﻿using DiscSpaceProfiler.Code.FileSystem;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -13,9 +14,29 @@ namespace DiscSpaceProfiler.ViewModels
 {
     using Timer = System.Timers.Timer;
 
+    public class FileSystemItemChangedEventArgs : EventArgs
+    {
+        public FileSystemItemChangedEventArgs(FolderItem parentItem, FileSystemItem item)
+        {
+            Parent = parentItem;
+            Item = item;
+        }
+
+        public FileSystemItem Item { get; private set; }
+        public FolderItem Parent { get; private set; }
+    }
+    public class FileSystemItemProcessedEventArgs : EventArgs
+    {
+        public FileSystemItemProcessedEventArgs(FileSystemItem item)
+        {
+            Item = item;
+        }
+
+        public FileSystemItem Item { get; private set; }
+    }
     public class MainWindowViewModel : INotifyPropertyChanged
     {
-        const int INT_MaxTaskCount = 2;
+        const int INT_MaxTaskCount = 3;
         List<Task> activeTasks = new List<Task>();
         ConcurrentQueue<FileSystemChangeEventArgs> changedEvents = new ConcurrentQueue<FileSystemChangeEventArgs>();
         IFileSystemDataProvider fileSystemProvider;
@@ -36,10 +57,13 @@ namespace DiscSpaceProfiler.ViewModels
             scanMonitorTimer = new Timer(100);
             scanMonitorTimer.Elapsed += ehScanMonitorTimerElapsed;
             fileSystemWatcher.Changed += ehChanged;
-            RootNodes = new ObservableCollection<FolderItem>();
             folderScanTokenSource = new CancellationTokenSource();
         }
 
+        public event EventHandler<FileSystemItemChangedEventArgs> FileSystemItemAdded;
+        public event EventHandler<FileSystemItemChangedEventArgs> FileSystemItemDeleted;
+        public event EventHandler<FileSystemItemProcessedEventArgs> FileSystemItemProcessed;
+        public event EventHandler<FileSystemItemProcessedEventArgs> FolderSizeCalculated;
         public event PropertyChangedEventHandler PropertyChanged;
 
         public bool ProcessingIsActive
@@ -56,14 +80,14 @@ namespace DiscSpaceProfiler.ViewModels
                 OnPropertyChanged(nameof(processingIsActive));
             }
         }
-        public ObservableCollection<FolderItem> RootNodes { get; private set; }
+        public FolderItem RootNode { get; private set; }
         public string RootPath
         {
             get
             {
-                if (RootNodes == null || RootNodes.Count == 0)
+                if (RootNode == null)
                     return string.Empty;
-                return RootNodes[0].DisplayName;
+                return RootNode.DisplayName;
             }
         }
 
@@ -77,7 +101,7 @@ namespace DiscSpaceProfiler.ViewModels
             if (!parentPath.StartsWith(RootPath))
                 return null;
             if (parentPath == RootPath)
-                return RootNodes.FirstOrDefault();
+                return RootNode;
             parentPath = parentPath.Remove(0, RootPath.Length);
             if (string.IsNullOrEmpty(parentPath))
                 return null;
@@ -88,7 +112,7 @@ namespace DiscSpaceProfiler.ViewModels
             var childNames = parentPath.Split(Path.DirectorySeparatorChar);
             if (childNames == null || childNames.Length == 0)
                 return null;
-            var currentNode = RootNodes.FirstOrDefault();
+            var currentNode = RootNode;
             if (currentNode == null)
                 return null;
             for (int i = 0; i < childNames.Length; i++)
@@ -125,7 +149,6 @@ namespace DiscSpaceProfiler.ViewModels
 
             }
             ProcessingIsActive = false;
-
         }
         void AddFolderToScan(FolderItem item)
         {
@@ -147,9 +170,9 @@ namespace DiscSpaceProfiler.ViewModels
                 return;
             parentItem.IsProcessing = false;
             if (!parentItem.HasChildren)
-            {
                 parentItem.UpdateIsValid(true);
-            }
+            OnFileSystemItemProcessed(parentItem);
+
         }
         void ehChanged(object sender, FileSystemChangeEventArgs e)
         {
@@ -177,6 +200,15 @@ namespace DiscSpaceProfiler.ViewModels
                 }
             }
         }
+        private void ehPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            FolderItem folderItem = sender as FolderItem;
+            if (folderItem == null || !folderItem.IsValid)
+                return;
+            if (e.PropertyName != nameof(FileSystemItem.IsValid))
+                return;
+            OnFolderSizeCalculated(folderItem);
+        }
         void FolderScanTask(CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -201,6 +233,22 @@ namespace DiscSpaceProfiler.ViewModels
             }
             return false;
         }
+        void OnFileSystemItemAdded(FolderItem parentItem, FileSystemItem addedItem)
+        {
+            FileSystemItemAdded?.Invoke(this, new FileSystemItemChangedEventArgs(parentItem, addedItem));
+        }
+        void OnFileSystemItemDeleted(FolderItem parentItem, FileSystemItem deletedItem)
+        {
+            FileSystemItemDeleted?.Invoke(this, new FileSystemItemChangedEventArgs(parentItem, deletedItem));
+        }
+        void OnFileSystemItemProcessed(FolderItem item)
+        {
+            FileSystemItemProcessed?.Invoke(this, new FileSystemItemProcessedEventArgs(item));
+        }
+        void OnFolderSizeCalculated(FolderItem item)
+        {
+            FolderSizeCalculated?.Invoke(this, new FileSystemItemProcessedEventArgs(item));
+        }
         void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -215,7 +263,9 @@ namespace DiscSpaceProfiler.ViewModels
                     ProcessChange(parentItem, change.Path, change.Name);
                     break;
                 case FileSystemChangeType.Deletion:
-                    parentItem.RemoveChildren(change.Name);
+                    var deletedItem = parentItem.RemoveChildren(change.Name);
+                    if (deletedItem != null)
+                        OnFileSystemItemDeleted(parentItem, deletedItem);
                     break;
                 case FileSystemChangeType.Creation:
                     ProcessCreation(parentItem, change);
@@ -270,6 +320,7 @@ namespace DiscSpaceProfiler.ViewModels
                 {
                     yield return fileSystemItem;
                     AddFolderToScan(folderItem);
+                    folderItem.PropertyChanged += ehPropertyChanged;
                 }
                 else
                     yield return fileSystemItem;
@@ -280,15 +331,14 @@ namespace DiscSpaceProfiler.ViewModels
             var path = change.Path;
             if (fileSystemProvider.FileExists(path))
             {
-
                 var fileInfo = fileSystemProvider.GetFileInfo(path);
                 if (fileInfo == null)
                     return;
                 var fileItem = new FileItem(change.Name, fileInfo.Item2);
-
                 if (parentItem.FindChildren(fileItem.DisplayName) != null)
                     return;
                 parentItem.AddChildren(fileItem);
+                OnFileSystemItemAdded(parentItem, fileItem);
             }
             else if (fileSystemProvider.DirectoryExists(path))
             {
@@ -297,15 +347,16 @@ namespace DiscSpaceProfiler.ViewModels
                     return;
                 parentItem.AddChildren(folderItem);
                 AddFolderToScan(folderItem);
+                OnFileSystemItemAdded(parentItem, folderItem);
             }
         }
         void RunForFolder(string rootFolder)
         {
-            RootNodes.Clear();
+            RootNode = null;
             folderScanTokenSource = new CancellationTokenSource();
             var folderItem = new FolderItem(rootFolder);
-            RootNodes.Add(folderItem);
-            OnPropertyChanged(nameof(RootNodes));
+            RootNode = folderItem;
+            OnPropertyChanged(nameof(RootNode));
             OnPropertyChanged(nameof(RootPath));
             StartListeningForChanges();
             CollectNestedItems(folderItem, folderScanTokenSource.Token);
@@ -313,13 +364,12 @@ namespace DiscSpaceProfiler.ViewModels
         }
         private void StartListeningForChanges()
         {
-            fileSystemWatcher.Start((RootNodes.FirstOrDefault() as FolderItem).GetPath());
+            fileSystemWatcher.Start(RootNode.GetPath());
         }
         private void StartScan()
         {
             scanMonitorTimer.Start();
         }
-
 #if DEBUG
         internal bool HasChanges => changedEvents.Count > 0;
         internal bool IsScanning => foldersToScan.Count > 0 || HasActiveTasks();

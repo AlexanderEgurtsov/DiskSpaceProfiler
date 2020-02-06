@@ -54,6 +54,7 @@ namespace DiscSpaceProfiler.Code.FileSystem
         public void AddChildren(FileSystemItem childItem)
         {
             childItem.SetParent(this);
+            UpdateIsValid(false);
             lock (childrenLock)
             {
                 if (childItem is FileItem fileItem)

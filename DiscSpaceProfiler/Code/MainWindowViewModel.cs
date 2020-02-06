@@ -265,7 +265,11 @@ namespace DiscSpaceProfiler.ViewModels
                 case FileSystemChangeType.Deletion:
                     var deletedItem = parentItem.RemoveChildren(change.Name);
                     if (deletedItem != null)
+                    {
+                        if (deletedItem is FolderItem deletedFolder)
+                            deletedFolder.IsProcessing = false;
                         OnFileSystemItemDeleted(parentItem, deletedItem);
+                    }
                     break;
                 case FileSystemChangeType.Creation:
                     ProcessCreation(parentItem, change);
@@ -346,6 +350,7 @@ namespace DiscSpaceProfiler.ViewModels
                 if (parentItem.FindChildren(folderItem.DisplayName) != null)
                     return;
                 parentItem.AddChildren(folderItem);
+                folderItem.PropertyChanged += ehPropertyChanged;
                 AddFolderToScan(folderItem);
                 OnFileSystemItemAdded(parentItem, folderItem);
             }
@@ -356,6 +361,7 @@ namespace DiscSpaceProfiler.ViewModels
             folderScanTokenSource = new CancellationTokenSource();
             var folderItem = new FolderItem(rootFolder);
             RootNode = folderItem;
+            folderItem.PropertyChanged += ehPropertyChanged;
             OnPropertyChanged(nameof(RootNode));
             OnPropertyChanged(nameof(RootPath));
             StartListeningForChanges();

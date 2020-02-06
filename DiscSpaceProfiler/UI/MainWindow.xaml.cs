@@ -103,7 +103,7 @@ namespace DiscSpaceProfiler.UI
         }
         private void ehFolderSizeCalculated(object sender, FileSystemItemProcessedEventArgs e)
         {
-            var folderItem = sender as FolderItem;
+            var folderItem = e.Item as FolderItem;
             if (folderItem == null)
                 return;
             if (folderItem.VisualObject == null)
